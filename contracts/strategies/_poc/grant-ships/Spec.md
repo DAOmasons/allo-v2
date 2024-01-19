@@ -6,6 +6,7 @@ Grant Ships introduces a meta-framework that provides a methodical approach to g
 
 - [Grant Ships](#grant-ships)
   - [Table of Contents](#table-of-contents)
+- [Diagram](#diagram)
 - [Contract Overview](#contract-overview)
   - [GameManagerStrategy Contract (`GameManagerStrategy.sol`)](#game-manager-strategysol)
   - [GrantShipStrategy Contract (`GrantShipStrategy.sol`)](#grant-ship-strategysol)
@@ -16,6 +17,10 @@ Grant Ships introduces a meta-framework that provides a methodical approach to g
   - [GameManagerStrategy Contract](#game-manager-strategy-contract)
   - [GrantShipStrategy Contract](#grant-ship-strategy-contract)
 - [Conclusion](#conclusion)
+
+## Diagram
+
+![Grant Ships Swim Lanes](img/GrantShips-SwimLanes.png)
 
 ## Contract Overview
 
