@@ -1,6 +1,6 @@
 # Grant Ships
 
-Grant Ships introduces a meta-framework that provides a methodical approach to grants programs. It enables communities to allocate funds for grants distribution, designate facilitators to oversee the process, delegate grant recipient screening and grant allocation to one or more subdaos or individuals referred to individually as a "Grant Ship". The technical architecture and interactions within the system are explained below.
+Grant Ships introduces a meta-framework that provides a methodical approach to grants programs. It enables communities to allocate funds for grants distribution, designate facilitators to oversee the process and delegate grant recipient screening and grant allocation to one or more subdaos or individuals referred to individually as a "Grant Ship". The technical architecture and interactions within the system are explained below.
 
 ## Table of Contents
 
@@ -34,7 +34,7 @@ Grant Ships introduces a meta-framework that provides a methodical approach to g
     <tbody>
         <tr>
             <td>GameManagerStrategy.sol</td>
-            <td>-Initiates the Game</br>- Accepts applications for Grant Ship Operators</br>- Initializes funding sub pools for individual Grant Ships</br>- Allocate and distribute funds to sub pools</td>
+            <td>- Initiates the Game</br>- Accepts applications for Grant Ship Operators</br>- Initializes funding sub pools for individual Grant Ships</br>- Allocate and distribute funds to sub pools</td>
         </tr>
         <tr>
             <td>GrantShipStrategy.sol</td>
@@ -47,21 +47,23 @@ Grant Ships introduces a meta-framework that provides a methodical approach to g
 
 The `GameManagerStrategy` contract serves as the foundation for the Grant Ships game. It allows Game Facilitators to set the initial parameters, review Grant Ship applicants and initiate the game when Grant Ship Operators have been selected. It has permission to make calls into the GrantShipStrategy and distribute funds.
 
-Every major action in the contract emits an event, creating records that can be aggregated into feeds. This includes an optional Metadata paramerter labled ``_reason`` offered in each function where the caller would be making a decision. The UpdatePosted event allows GameFacilitators to post arbitrary data to their feed, usually corresponding to game-wide events.
+Every major action in the contract emits an event, creating records that can be aggregated into feeds. In each function where the caller is making a decision, an optional parameter `Metadata _reason` is included. The UpdatePosted event allows GameFacilitators to post arbitrary data to their feed, usually corresponding to game-wide events.
 
 ### GrantShipStrategy Contract (`GrantShipStrategy.sol`)
 
-The `GrantShipStrategy` contract is also an Allo Strategy with associated funding pool. Multiple instances are initialized by `GameManagerStrategy` - one for each Grant Ship. Once the game is started the contract handles applications from potential Grant Recipients and the submission of milestones. Game Facilitators can make calls into this contract to flag a Grant Ship with Yellow or Red Flags. Red Flags lock down Ship operations until the flag is resolved.
+The `GrantShipStrategy` contract is also an Allo Strategy with associated funding pool. Multiple instances are initialized by `GameManagerStrategy` - one for each Grant Ship. Once the game is started the contract handles applications from potential Grant Recipients and the submission of milestones.
 
-Like GameManagerStrategy, GrantShipStrategy offers a ``Metatdata _reason`` paramater for each function where the caller would be making a decision. Each GrantShap also has its own ``_postUpdate`` function for posting arbitrary data to their feed. This function gates the role to either a Grant Recipient, a Ship Operator, or a GameFacilitator. It will also detect the caller's role and tag the post accordingly, allowing for easy indexing later on. 
+Game Facilitators can make calls into this contract to flag a Grant Ship with Yellow or Red Flags. Yellow Flags are like notes or warnings that go into the public feeds. Red Flags lock down Ship operations until the flag is resolved.
 
-// Note: Is the section below a list of the key interactions involved with both contracts? If so, are these sections meant to be filled in eventually? If so, I can add to this.  
+Like GameManagerStrategy, GrantShipStrategy offers a `Metatdata _reason` parameter for each function where the caller would be making a decision. Each GrantShip also has its own `_postUpdate` function for posting arbitrary data to their feed. This function gates the role to either a Grant Recipient, a Ship Operator, or a Game Facilitator. It will also detect the caller's role and tag the post accordingly, allowing for easy indexing later on.
+
+// Note: Is the section below a list of the key interactions involved with both contracts? If so, are these sections meant to be filled in eventually? If so, I can add to this.
 
 ## Key Functionality and Interactions
 
 ### Game Initialization
 
-// Note: This is a big one, and a great use for the docs here. There's a lot of preconfig required to set up the game, for example, structuring the Hats Tree. 
+// Note: This is a big one, and a great use for the docs here. There's a lot of preconfig required to set up the game, for example, structuring the Hats Tree.
 
 ### Grant Ship Operator Applications and Approval
 
@@ -69,9 +71,9 @@ Like GameManagerStrategy, GrantShipStrategy offers a ``Metatdata _reason`` param
 
 ### Game Facilitators apply yellow or red flags
 
-### GameManager can deploy other types of GrantShips. 
+### GameManager can deploy other types of GrantShips.
 
-// Todo: Not currently in use, but we can adapt other Allo strategies and turn them into GrantShips. Definitely worth mentioning. 
+// Todo: Not currently in use, but we can adapt other Allo strategies and turn them into GrantShips. Definitely worth mentioning.
 
 ### Content Generation
 
@@ -81,15 +83,15 @@ Like GameManagerStrategy, GrantShipStrategy offers a ``Metatdata _reason`` param
 
 The Grant Ships game delegates distinct and revokable roles to participants using [Hats protocol](https://github.com/Hats-Protocol/hats-protocol) to foster efficient operations:
 
-- **Game Facilitators:** Responsible for initalizing the game, selecting Grant Ships and approving fund allocations. Game Faciliators have the optionto apply and resolve yellow or red flags to Grant Ships which will go on the Grant Ships record. Red flags lock down ship operations until resolved.
+- **Game Facilitators:** Responsible for initalizing the game, selecting Grant Ships and approving fund allocations. Game Faciliators have the option to apply and resolve yellow or red flags to Grant Ships which will go on the Grant Ships record. Red flags lock down ship operations until resolved.
 - **Grant Ship Operator:** Operators approve Grant Recipients and their submitted milestones. They submit fund allocations for Game Faciliator review, and distribute the allocated funds when milestones are submitted.
 - **Grant Recipients:** Grant Recipients apply for funding and are either approved or rejected by the Grant Ship Operators. They can also submit milestones for funding.
 
-  // Todo: Include the high-level diagram of the Hats Structure. 
+![Hats Roles Diagram](img/GrantShips-HatsRoles.png)
 
 ## User Flows
 
-### Game Manager Strategy Contract
+### GameManagerStrategy Contract
 
 - **Functionality:** The `GameManagerStrategy` Contract extends Allo `BaseStrategy` to allow Game Facilitators to initialize the Grant Ships game, accept applications from potential Grant Ships, approve or reject Grant Ship applicants, allocate and distribute funds to approved Ships and emit events.
 - **Interactions:**
@@ -102,7 +104,7 @@ The Grant Ships game delegates distinct and revokable roles to participants usin
 - **Events:**
   - RoundCreated, ShipLaunched, RecipientAccepted, RecipientRejected, GameActive, GameManagerInitialized, UpdatePosted
 
-### Grant Ship Strategy Contract
+### GrantShipStrategy Contract
 
 - **Functionality:** The `GrantShipStrategy` Contract extends Allo `BaseStrategy` to allow Grant Ships to accept applications from potential grant recipients, review applications, approve applications by allocating funds and receive milestone declarations from Grant Recipients. It allows Grant Recipients to submit milestones for funding which can be rejected or funded by the Grant Ship.
 - **Interactions:**
@@ -121,6 +123,6 @@ The Grant Ships game delegates distinct and revokable roles to participants usin
 
 The Grant Ships project is a reorganization of traditional grants program to provide decentralized fund allocation, distribution, transparency and accountability. By employing revokable roles the administering community retains control, and responsibilities are divided among multiple roles so that players can focus on what they do best.
 
-// Note: We allude to revokable roles here, but I think it would be good to include a capture resistance section somewhere in this document and demonstrate how we address this in detail. We should explain Hats revokability, the pool withdraw process, and place a link to Spencer's original article there as well. 
+// Note: We allude to revokable roles here, but I think it would be good to include a capture resistance section somewhere in this document and demonstrate how we address this in detail. We should explain Hats revokability, the pool withdraw process, and place a link to Spencer's original article there as well.
 
-// Note: 
+// Note:
