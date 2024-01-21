@@ -69,7 +69,15 @@ Like GameManagerStrategy, GrantShipStrategy offers a `Metatdata _reason` paramet
 
 ### Grant Recipient Applications and Approval
 
+Grant Ship and Grant Recipient registration happens through the registerRecipient function in `BaseStrategy.sol` as part of the Allo registration process. Registration requires the caller to have an Allo registry account.
+
+In `GameManagerStrategy` a call to registerRecipient is made to register potential new Grant Ships. If the applicant is a member of the passed registry profile, the call includes valid metadata and the recipient has not been registered previously, then a new Recipient entry is created and added to the recipients list and a Registered event is emitted.
+
+A subsequent call to reviewRecipient by the Game Facilitator sets a recipient's status to `GameStatus.Accepted` or `GameStatus.Rejected` and emits a corresponding `RecipientAccepted` or `RecipientRejected` event. When a Grant Ship/Recipient is approved in this way,`_createShip` is called which launches a new funding pool by calling `_allo.createPoolWithCustomStrategy` with `GrantShipStrategy.sol` specified as the strategy by `GrantShipFactory`. A `ShipLaunched` event is emitted.
+
 ### Game Facilitators apply yellow or red flags
+
+Once the Grant Ships are launched (using `GrantShipStrategy.sol`) the Game Facilitator has permission to issue a Yellow or Red Flag by calling the `issueFlag` in GrantShipStrategy.
 
 ### GameManager can deploy other types of GrantShips.
 
@@ -78,6 +86,10 @@ Like GameManagerStrategy, GrantShipStrategy offers a `Metatdata _reason` paramet
 ### Content Generation
 
 // With off-chain tools, we usually have the luxury of having user generated content to see 'why' a user initiated a certain action. In many governance apps, we usually don't have that luxury. However, with grants programs, the demand for good record-keeping is very high. This usually creates a large burden for program managers, who have to access data across many different silos. These contracts aim to make record-keeping a passive side-effect. Full transparency is not only necessary for playing the game, it's a strategy for success.
+
+### Security & Capture Resistance
+
+// Todo: Explain Hats revokability, the pool withdraw process, and place a link to Spencer's original article there as well.
 
 ## Roles and Actors
 
@@ -124,5 +136,3 @@ The Grant Ships game delegates distinct and revokable roles to participants usin
 The Grant Ships project is a reorganization of traditional grants program to provide decentralized fund allocation, distribution, transparency and accountability. By employing revokable roles the administering community retains control, and responsibilities are divided among multiple roles so that players can focus on what they do best.
 
 // Note: We allude to revokable roles here, but I think it would be good to include a capture resistance section somewhere in this document and demonstrate how we address this in detail. We should explain Hats revokability, the pool withdraw process, and place a link to Spencer's original article there as well.
-
-// Note:
