@@ -5,7 +5,7 @@
 node_modules/
 
 # Environment variables
-.env
+*.env
 
 # Visual Studio Code settings
 .vscode/
@@ -40,3 +40,4 @@ cache/solidity-files-cache.json
 
 # ZKSync files
 artifacts-zk/
+
