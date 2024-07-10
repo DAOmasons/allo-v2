@@ -294,7 +294,6 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         assertTrue(recipient.metadata.protocol == 1);
         assertTrue(recipient.recipientStatus == IStrategy.Status.Pending);
         assertTrue(recipient.milestonesReviewStatus == IStrategy.Status.Pending);
-        assertTrue(recipient.useRegistryAnchor);
 
         IStrategy.Status status = ship(1).getRecipientStatus(recipientId);
         assertTrue(uint8(status) == uint8(IStrategy.Status.Pending));
@@ -1008,13 +1007,10 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
     }
 
-    function _test_ship_created(uint256 _shipId) internal {
+    function _test_ship_created(uint256 _shipId) internal view {
         ShipInitData memory shipInitData = shipSetupData(_shipId);
         assertTrue(address(ship(_shipId).getAllo()) == address(allo()));
         // assertTrue(ship(_shipId).getStrategyId() == keccak256(abi.encode(shipInitData.shipName)));
-        assertTrue(ship(_shipId).registryGating());
-        assertTrue(ship(_shipId).metadataRequired());
-        assertTrue(ship(_shipId).grantAmountRequired());
         assertTrue(shipInitData.operatorHatId == ship(_shipId).operatorHatId());
     }
 

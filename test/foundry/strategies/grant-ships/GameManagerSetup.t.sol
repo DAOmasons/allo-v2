@@ -208,9 +208,6 @@ contract GameManagerSetup is Test, HatsSetupLive, AlloSetup, RegistrySetupFullLi
     function __generateShipData() internal {
         for (uint32 i = 0; i < 3;) {
             ShipInitData memory shipInitData = ShipInitData(
-                true,
-                true,
-                true,
                 "GrantShipStrategy",
                 Metadata(1, string.concat("ipfs://grant-ships/ship.json/", vm.toString(i))),
                 team(i).wearer,

@@ -47,7 +47,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
     /// @notice Struct to hold details of a recipient
     struct Recipient {
-        bool useRegistryAnchor;
         address receivingAddress;
         uint256 grantAmount;
         Metadata metadata;
@@ -85,15 +84,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// ===============================
 
     /// @notice Emitted when the strategy is initialized
-    event GrantShipInitialized(
-        uint256 poolId,
-        bool registryGating,
-        bool metadataRequired,
-        bool grantAmountRequired,
-        uint256 operatorHatId,
-        uint256 facilitatorHatId,
-        address registryAnchor
-    );
+    event GrantShipInitialized(uint256 poolId, uint256 operatorHatId, uint256 facilitatorHatId, address registryAnchor);
 
     /// @notice Emitted for the registration of a recipient and the status is updated.
     event RecipientStatusChanged(address recipientId, Status status, Metadata reason);
@@ -143,15 +134,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
     /// @notice Reference to GameManager's 'Hats' contract interface.
     IHats internal _hats;
-
-    /// @notice Flag to check if registry gating is enabled.
-    bool public registryGating;
-
-    /// @notice Flag to check if metadata is required.
-    bool public metadataRequired;
-
-    /// @notice Flag to check if grant amount is required.
-    bool public grantAmountRequired;
 
     /// @notice The registryId of this GrantShip in the parent GameManagerStrategy
     address public shipRegistryAnchor;
@@ -267,9 +249,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         _hats = IHats(address(_gameManager.getHatsAddress()));
 
         // Set the strategy specific variables
-        registryGating = _initData.registryGating;
-        metadataRequired = _initData.metadataRequired;
-        grantAmountRequired = _initData.grantAmountRequired;
         operatorHatId = _initData.operatorHatId;
         facilitatorHatId = _initData.facilitatorHatId;
         shipRegistryAnchor = _initData.recipientId;
@@ -279,15 +258,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         // NOTE: There may be some cases where you may want to not set this here, but will be strategy specific
         _setPoolActive(true);
 
-        emit GrantShipInitialized(
-            _poolId,
-            registryGating,
-            metadataRequired,
-            grantAmountRequired,
-            operatorHatId,
-            facilitatorHatId,
-            shipRegistryAnchor
-        );
+        emit GrantShipInitialized(_poolId, operatorHatId, facilitatorHatId, shipRegistryAnchor);
     }
 
     /// ===============================
@@ -634,36 +605,18 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         returns (address recipientId)
     {
         address receivingAddress;
-        address registryAnchor;
-        bool isUsingRegistryAnchor;
         uint256 grantAmount;
         Metadata memory metadata;
 
-        /// @custom:data when 'true' -> (address recipientId, address receivingAddress, uint256 grantAmount, Metadata metadata)
-        if (registryGating) {
-            (recipientId, receivingAddress, grantAmount, metadata) =
-                abi.decode(_data, (address, address, uint256, Metadata));
+        (recipientId, receivingAddress, grantAmount, metadata) =
+            abi.decode(_data, (address, address, uint256, Metadata));
 
-            if (!_isProfileMember(recipientId, _sender)) {
-                revert UNAUTHORIZED();
-            }
-        } else {
-            /// @custom:data when 'false' -> (address receivingAddress, address registryAnchor, uint256 grantAmount, Metadata metadata)
-            (receivingAddress, registryAnchor, grantAmount, metadata) =
-                abi.decode(_data, (address, address, uint256, Metadata));
-
-            // Check if the registry anchor is valid so we know whether to use it or not
-            isUsingRegistryAnchor = registryAnchor != address(0);
-
-            // Ternerary to set the recipient id based on whether or not we are using the 'registryAnchor' or '_sender'
-            recipientId = isUsingRegistryAnchor ? registryAnchor : _sender;
-            if (isUsingRegistryAnchor && !_isProfileMember(recipientId, _sender)) {
-                revert UNAUTHORIZED();
-            }
+        if (!_isProfileMember(recipientId, _sender)) {
+            revert UNAUTHORIZED();
         }
 
         // Check if the grant amount is required and if it is, check if it is greater than 0, otherwise revert
-        if (grantAmountRequired && grantAmount == 0) {
+        if (grantAmount == 0) {
             revert INVALID_REGISTRATION();
         }
 
@@ -673,7 +626,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         }
 
         // Check if the metadata is required and if it is, check if it is valid, otherwise revert
-        if (metadataRequired && (bytes(metadata.pointer).length == 0 || metadata.protocol == 0)) {
+        if ((bytes(metadata.pointer).length == 0 || metadata.protocol == 0)) {
             revert INVALID_METADATA();
         }
 
@@ -692,7 +645,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         // Create the recipient instance
         Recipient memory recipient = Recipient({
             receivingAddress: receivingAddress,
-            useRegistryAnchor: registryGating ? true : isUsingRegistryAnchor,
             grantAmount: grantAmount,
             metadata: metadata,
             recipientStatus: Status.Pending,

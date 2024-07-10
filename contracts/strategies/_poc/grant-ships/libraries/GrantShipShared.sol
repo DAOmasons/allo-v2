@@ -10,9 +10,6 @@ import {IStrategy} from "../../../../core/interfaces/IStrategy.sol";
 
 /// @notice Struct to hold the init params for the strategy
 struct ShipInitData {
-    bool registryGating;
-    bool metadataRequired;
-    bool grantAmountRequired;
     string shipName;
     Metadata shipMetadata;
     address recipientId;
