@@ -727,6 +727,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// @param _sender The sender of the distribution
     function _distributeUpcomingMilestone(address _recipientId, address _sender) private {
         uint256 milestoneToBeDistributed = upcomingMilestone[_recipientId];
+
         Milestone[] storage recipientMilestones = milestones[_recipientId];
 
         Recipient storage recipient = _recipients[_recipientId];
