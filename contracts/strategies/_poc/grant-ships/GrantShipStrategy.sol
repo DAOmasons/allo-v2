@@ -424,8 +424,8 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     ///      of a 'Profile' to submit a milestone and '_recipientId'.
     ///      must NOT be the same as 'msg.sender'. Emits a 'MilestonesSubmitted()' event.
     /// @param _recipientId ID of the recipient
-    /// @param _metadata The proof of work
-    function submitMilestone(address _recipientId, uint256 _milestoneId, Metadata calldata _metadata) external {
+    /// @param _demoMetadata The proof of work completed
+    function submitMilestone(address _recipientId, uint256 _milestoneId, Metadata calldata _demoMetadata) external {
         // Check if the '_recipientId' is the same as 'msg.sender' and if it is NOT, revert. This
         // also checks if the '_recipientId' is a member of the 'Profile' and if it is NOT, revert.
         if (_recipientId != msg.sender && !_isProfileMember(_recipientId, msg.sender)) {
@@ -452,7 +452,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
         milestone.milestoneStatus = Status.Pending;
 
-        emit MilestoneSubmitted(_recipientId, _milestoneId, _metadata);
+        emit MilestoneSubmitted(_recipientId, _milestoneId, _demoMetadata);
     }
 
     /// @notice Reject pending milestone of the recipient.
