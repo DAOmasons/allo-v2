@@ -174,9 +174,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// @notice Flag to check if the Ship has been flagged for a violation
     mapping(uint256 nonce => Flag) public violationFlags;
 
-    /// @notice Internal collection of accepted recipients able to submit milestones
-    address[] private _acceptedRecipientIds;
-
     /// @notice This maps accepted recipients to their details
     /// @dev 'recipientId' to 'Recipient'
     mapping(address => Recipient) private _recipients;
@@ -577,38 +574,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         emit FlagResolved(_nonce, _reason);
     }
 
-    /// Review: Make sure that the recipient is not 'stuck' at Status.InReview in all possible cases
-    /// OR: Make sure that the recipient isn't able to 'jump ahead'.
-    /// Also make sure the UX of getting back in the flow is easy to implement and clear to the user
-
-    /// @notice Set the status of the recipient to 'InReview'
-    /// @dev Emits a 'RecipientStatusChanged()' event
-    /// @param _recipientIds IDs of the recipients
-    /// @param _reasons The reasons for setting statuses to 'InReview'
-    function setRecipientStatusToInReview(address[] calldata _recipientIds, Metadata[] calldata _reasons) external {
-        if (!isShipOperator(msg.sender) && !isGameFacilitator(msg.sender)) {
-            revert UNAUTHORIZED();
-        }
-        if (_recipientIds.length != _reasons.length) {
-            revert ARRAY_MISMATCH();
-        }
-
-        uint256 recipientLength = _recipientIds.length;
-        for (uint256 i; i < recipientLength;) {
-            address recipientId = _recipientIds[i];
-            _recipients[recipientId].recipientStatus = Status.InReview;
-
-            emit RecipientStatusChanged(recipientId, Status.InReview, _reasons[i]);
-
-            unchecked {
-                i++;
-            }
-        }
-    }
-
-    /// Review: This is currently the only way for a parent strategy to properly distribute to a child strategy
-    /// Or at least the only solution that I've been able to discover. Any other ideas are welcome.
-
     /// @notice Increase the pool amount for this pool.
     /// @dev 'msg.sender' must be the parent GameManagerStrategy to increase the pool amount.
     function managerIncreasePoolAmount(uint256 _amount) external {
@@ -631,25 +596,19 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// @dev Only sends funds to the game manager.
     /// @param _amount The amount to be withdrawn
     function withdraw(uint256 _amount) external onlyGameFacilitator(msg.sender) onlyInactivePool nonReentrant {
-        // CHECK
         if (_amount > poolAmount) {
             revert NOT_ENOUGH_FUNDS();
         }
 
-        // EFFECT
         poolAmount -= _amount;
-
-        // Review: Using fund pool and approve to ensure that
-        // game manager's pool amount is correct when it recieves funds
-        // There's probably a better pattern for this.
-
-        // INTERACTION
 
         // get pool token address
         IERC20 token = IERC20(allo.getPool(poolId).token);
         // approve Allo to transfer funds
         token.approve(address(allo), _amount);
         // Transfer the amount to the pool manager
+
+        // token.transferFrom(address(this), msg.sender, _amount);
         allo.fundPool(_gameManager.getPoolId(), _amount);
 
         // Emit event for the withdrawal
@@ -680,7 +639,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         uint256 grantAmount;
         Metadata memory metadata;
 
-        // Decode '_data' depending on the 'registryGating' flag
         /// @custom:data when 'true' -> (address recipientId, address receivingAddress, uint256 grantAmount, Metadata metadata)
         if (registryGating) {
             (recipientId, receivingAddress, grantAmount, metadata) =

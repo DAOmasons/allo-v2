@@ -350,66 +350,6 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         assertTrue(payouts[1].recipientAddress == address(0));
     }
 
-    function test_setRecipientStatusToInReview_by_operator() public {
-        address recipientId = _register_recipient();
-
-        address[] memory recipients = new address[](1);
-        recipients[0] = recipientId;
-
-        Metadata[] memory reasons = new Metadata[](1);
-
-        reasons[0] = reason;
-
-        vm.expectEmit(true, true, true, true);
-        emit RecipientStatusChanged(recipientId, IStrategy.Status.InReview, reason);
-
-        vm.startPrank(shipOperator(1).wearer);
-        ship(1).setRecipientStatusToInReview(recipients, reasons);
-        IStrategy.Status status = ship(1).getRecipientStatus(recipientId);
-
-        assertTrue(uint8(status) == uint8(IStrategy.Status.InReview));
-
-        vm.stopPrank();
-    }
-
-    function test_setRecipientStatusToInReview_by_facilitator() public {
-        address recipientId = _register_recipient();
-
-        address[] memory recipients = new address[](1);
-        recipients[0] = recipientId;
-
-        Metadata[] memory reasons = new Metadata[](1);
-        reasons[0] = reason;
-
-        vm.expectEmit(true, true, true, true);
-        emit RecipientStatusChanged(recipientId, IStrategy.Status.InReview, reason);
-
-        vm.startPrank(facilitator().wearer);
-        ship(1).setRecipientStatusToInReview(recipients, reasons);
-        IStrategy.Status status = ship(1).getRecipientStatus(recipientId);
-
-        assertTrue(uint8(status) == uint8(IStrategy.Status.InReview));
-
-        vm.stopPrank();
-    }
-
-    function testRevert_setRecipientStatusToInReview_UNAUTHORIZED() public {
-        address recipientId = _register_recipient();
-
-        address[] memory recipients = new address[](1);
-        recipients[0] = recipientId;
-
-        Metadata[] memory reasons = new Metadata[](1);
-        reasons[0] = reason;
-
-        vm.expectRevert(UNAUTHORIZED.selector);
-
-        vm.startPrank(randomAddress());
-        ship(1).setRecipientStatusToInReview(recipients, reasons);
-
-        vm.stopPrank();
-    }
-
     function test_setPoolActive() public {
         vm.expectEmit(true, true, true, true);
         emit PoolActive(true);
