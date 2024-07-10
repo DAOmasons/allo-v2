@@ -299,6 +299,10 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         assertTrue(uint8(status) == uint8(IStrategy.Status.Pending));
     }
 
+    function test_registerRecipient_earlyMilestones() public {
+        _register_recipient_setMilestones_early();
+    }
+
     function testRevert_registerRecipient_UNAUTHORIZED() public {
         address recipientId = profile1_anchor();
         address recipientAddress = recipient1();
@@ -1012,6 +1016,46 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
 
     function _register_recipient() internal returns (address recipientId) {
         (recipientId,) = _register_recipient_return_data();
+    }
+
+    function _register_recipient_setMilestones_early() internal returns (address recipientId) {
+        recipientId = _register_recipient();
+        GrantShipStrategy.Milestone[] memory milestones = new GrantShipStrategy.Milestone[](2);
+        milestones[0] = GrantShipStrategy.Milestone({
+            amountPercentage: 0.3e18,
+            metadata: Metadata(1, "milestone-1"),
+            milestoneStatus: IStrategy.Status.None
+        });
+
+        milestones[1] = GrantShipStrategy.Milestone({
+            amountPercentage: 0.7e18,
+            metadata: Metadata(1, "milestone-2"),
+            milestoneStatus: IStrategy.Status.None
+        });
+
+        vm.expectEmit(true, true, true, true);
+
+        emit MilestonesSet(recipientId, milestones.length);
+
+        vm.startPrank(profile1_member1());
+        ship(1).setMilestones(recipientId, milestones, reason);
+        vm.stopPrank();
+    }
+
+    function _register_recipient_allocate_accept_earlyMilestones() internal returns (address recipientId) {
+        recipientId = _register_recipient_setMilestones_early();
+        GrantShipStrategy.Status recipientStatus = IStrategy.Status.Accepted;
+        uint256 grantAmount = _grantAmount;
+
+        bytes memory data = abi.encode(recipientId, recipientStatus, grantAmount, reason);
+
+        vm.expectEmit(true, true, true, true);
+        emit RecipientStatusChanged(recipientId, recipientStatus, reason);
+        emit Allocated(recipientId, grantAmount, address(ARB()), facilitator().wearer);
+
+        vm.startPrank(address(allo()));
+        ship(1).allocate(data, facilitator().wearer);
+        vm.stopPrank();
     }
 
     function _register_recipient_allocate_accept() internal returns (address recipientId) {
