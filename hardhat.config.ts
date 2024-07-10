@@ -12,7 +12,8 @@ import "hardhat-gas-reporter";
 import "hardhat-preprocessor";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
-import "solidity-coverage";
+import "@xyrusworx/hardhat-solidity-json";
+import "solidity-coverage"; // npx hardhat solidity-json
 
 dotenv.config();
 
@@ -33,6 +34,9 @@ const chainIds = {
   mumbai: 80001,
   "filecoin-calibration": 314159,
   fuji: 43113,
+  "sei-devnet": 713715,
+  "sei-mainnet": 1329,
+  "lukso-testnet": 4201,
 
   // mainnet
   mainnet: 1,
@@ -45,6 +49,7 @@ const chainIds = {
   "filecoin-mainnet": 314,
   avalanche: 43114,
   scroll: 534352,
+  "lukso-mainnet": 42,
 };
 
 let deployPrivateKey = process.env.DEPLOYER_PRIVATE_KEY as string;
@@ -170,7 +175,7 @@ const config: HardhatUserConfig = {
     polygon: {
       ...createMainnetConfig("polygon"),
       url: `https://polygon-mainnet.g.alchemy.com/v2/${alchemyIdKey}`,
-      gasPrice: 300000000000,
+      gasPrice: 450000000000,
     },
     avalanche: {
       ...createMainnetConfig("avalanche"),
@@ -179,6 +184,14 @@ const config: HardhatUserConfig = {
     scroll: {
       ...createMainnetConfig("scroll"),
       url: `https://1rpc.io/scroll`,
+    },
+    "filecoin-mainnet": {
+      ...createMainnetConfig("filecoin-mainnet"),
+      url: `https://api.node.glif.io`,
+    },
+    "lukso-mainnet": {
+      ...createMainnetConfig("lukso-mainnet"),
+      url: "https://42.rpc.thirdweb.com",
     },
     // Test Networks
     goerli: createTestnetConfig(
@@ -229,6 +242,23 @@ const config: HardhatUserConfig = {
       ...createTestnetConfig("fuji"),
       url: `https://api.avax-test.network/ext/bc/C/rpc`,
     },
+    "filecoin-calibration": {
+      ...createTestnetConfig("filecoin-calibration"),
+      url: `https://api.calibration.node.glif.io/rpc/v1`,
+    },
+    "sei-devnet": {
+      ...createTestnetConfig("sei-devnet"),
+      url: `https://evm-rpc-arctic-1.sei-apis.com`,
+    },
+    "sei-mainnet": {
+      ...createMainnetConfig("sei-mainnet"),
+      url: `https://evm-rpc.sei-apis.com`,
+    },
+    "lukso-testnet": {
+      ...createTestnetConfig("lukso-testnet"),
+      url: "https://4201.rpc.thirdweb.com",
+    },
+
     // Local Networks
     localhost: createTestnetConfig("localhost", "http://localhost:8545"),
     hardhat: {
@@ -250,52 +280,30 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      // @ts-ignore
-      mainnet: process.env.ETHERSCAN_API_KEY,
-      // @ts-ignore
-      goerli: process.env.ETHERSCAN_API_KEY,
-      // @ts-ignore
-      sepolia: process.env.ETHERSCAN_API_KEY,
-      // @ts-ignore
-      optimisticEthereum: process.env.OPTIMISTIC_ETHERSCAN_API_KEY,
-      // @ts-ignore
-      optimisticGoerli: process.env.OPTIMISTIC_ETHERSCAN_API_KEY,
-      // @ts-ignore
-      ftmTestnet: process.env.FTMSCAN_API_KEY,
-      // @ts-ignore
-      opera: process.env.FTMSCAN_API_KEY,
-      // @ts-ignore
-      "pgn-mainnet": process.env.PGNSCAN_API_KEY,
-      // @ts-ignore
-      "pgn-sepolia": process.env.PGNSCAN_API_KEY,
-      // @ts-ignore
-      "celo-mainnet": process.env.CELOSCAN_API_KEY,
-      // @ts-ignore
-      "celo-testnet": process.env.CELOSCAN_API_KEY,
-      // @ts-ignore
-      base: process.env.BASESCAN_API_KEY,
-      // @ts-ignore
-      "base-testnet": process.env.BASESCAN_API_KEY,
-      // @ts-ignore
-      polygon: process.env.POLYGONSCAN_API_KEY,
-      // @ts-ignore
-      mumbai: process.env.POLYGONSCAN_API_KEY,
-      // @ts-ignore
-      "arbitrum-mainnet": process.env.ARBITRUMSCAN_API_KEY,
-      // @ts-ignore
-      "arbitrum-sepolia": process.env.ARBITRUMSCAN_API_KEY,
-      // @ts-ignore
-      "optimism-sepolia": process.env.OPTIMISTIC_ETHERSCAN_API_KEY,
-      // @ts-ignore
-      "filecoin-mainnet": process.env.FILECOIN_ETHERSCAN_API_KEY,
-      // @ts-ignore
-      "filecoin-calibration": process.env.FILECOIN_CALIBRATION_ETHERSCAN_API_KEY,
-      // @ts-ignore
-      fuji: "NA",
-      // @ts-ignore
-      avalanche: "NA",
-      // @ts-ignore
-      scroll: process.env.SCROLLSCAN_API_KEY!,
+      mainnet: process.env.ETHERSCAN_API_KEY || "",
+      goerli: process.env.ETHERSCAN_API_KEY || "",
+      sepolia: process.env.ETHERSCAN_API_KEY || "",
+      optimisticEthereum: process.env.OPTIMISTIC_ETHERSCAN_API_KEY || "",
+      optimisticGoerli: process.env.OPTIMISTIC_ETHERSCAN_API_KEY || "",
+      ftmTestnet: process.env.FTMSCAN_API_KEY || "",
+      opera: process.env.FTMSCAN_API_KEY || "",
+      "celo-mainnet": process.env.CELOSCAN_API_KEY || "",
+      "celo-testnet": process.env.CELOSCAN_API_KEY || "",
+      base: process.env.BASESCAN_API_KEY || "",
+      "base-testnet": process.env.BASESCAN_API_KEY || "",
+      polygon: process.env.POLYGONSCAN_API_KEY || "",
+      mumbai: process.env.POLYGONSCAN_API_KEY || "",
+      "arbitrum-mainnet": process.env.ARBITRUMSCAN_API_KEY || "",
+      "arbitrum-sepolia": process.env.ARBITRUMSCAN_API_KEY || "",
+      "optimism-sepolia": process.env.OPTIMISTIC_ETHERSCAN_API_KEY || "",
+      "filecoin-mainnet": process.env.FILECOIN_ETHERSCAN_API_KEY || "",
+      "filecoin-calibration": "no-api-key-needed",
+      fuji: "no-api-key-needed",
+      avalanche: "no-api-key-needed",
+      scroll: process.env.SCROLLSCAN_API_KEY || "",
+      "sei-mainnet": process.env.SEITRACE_API_KEY || "",
+      "lukso-mainnet": "no-api-key-needed",
+      "lukso-testnet": "no-api-key-needed",
     },
     customChains: [
       {
@@ -392,8 +400,8 @@ const config: HardhatUserConfig = {
         network: "filecoin-calibration",
         chainId: chainIds["filecoin-calibration"],
         urls: {
-          apiURL: "https://api.calibration.node.glif.io/rpc/v1",
-          browserURL: "https://calibration.filscan.io",
+          apiURL: "https://calibration.filfox.info/api/v1/tools/verifyContract",
+          browserURL: "https://calibration.filfox.info",
         },
       },
       {
@@ -402,7 +410,7 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.node.glif.io",
           browserURL: "https://filscan.io",
-        }
+        },
       },
       {
         network: "scroll",
@@ -410,6 +418,38 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.scrollscan.com/api",
           browserURL: "https://scrollscan.com/",
+        },
+      },
+      {
+        network: "sei-devnet",
+        chainId: chainIds["sei-devnet"],
+        urls: {
+          apiURL: "",
+          browserURL: "", // TODO
+        },
+      },
+      {
+        network: "sei-mainnet",
+        chainId: chainIds["sei-mainnet"],
+        urls: {
+          apiURL: "https://seitrace.com/api",
+          browserURL: "https://seitrace.com/",
+        },
+      },
+      {
+        network: "lukso-testnet",
+        chainId: chainIds["lukso-testnet"],
+        urls: {
+          apiURL: "https://explorer.execution.testnet.lukso.network/api",
+          browserURL: "https://explorer.execution.testnet.lukso.network/",
+        },
+      },
+      {
+        network: "lukso-mainnet",
+        chainId: chainIds["lukso-mainnet"],
+        urls: {
+          apiURL: "https://explorer.execution.mainnet.lukso.network/api",
+          browserURL: "https://explorer.execution.mainnet.lukso.network/",
         },
       },
     ],

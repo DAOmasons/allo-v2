@@ -27,12 +27,10 @@ handle_insufficient_funds_error() {
 
 networks=(
 #   "fuji"
-#   "mumbai"
 #   "sepolia"
-#   "base-testnet"
 #   "celo-testnet"
 #   "arbitrum-sepolia"
-#   "optimism-sepolia"
+#   "optimism-sepolia" # Error calling deploy() function for contract DirectGrantsLiteStrategy
 #   "optimism-mainnet"
 #   "celo-mainnet"
 #   "arbitrum-mainnet"
@@ -43,6 +41,17 @@ networks=(
 #   "scroll"
 #   "ftmTestnet"
 #   "fantom"
+#   "filecoin-mainnet"
+#   "filecoin-calibration"
+#   "sei-devnet"
+# "sei-mainnet"
+#   "lukso-testnet"
+#   "lukso-mainnet"
+
+#  === ZkSync Era ===
+#   "zkSyncTestnet"
+#   "zkSyncMainnet"
+#  ==================
 )
 
 scripts=(
@@ -51,19 +60,37 @@ scripts=(
     # "core/deployAllo"
     # "strategies/deployDonationVotingMerkleDistributionDirect"
     # "strategies/deployDirectGrants"
+    # "strategies/deployDirectGrantsLite"
+    
     # "core/transferProxyAdminOwnership"
     # "strategies/deployDonationVotingMerkleDistributionVault"
     # "strategies/deployQVSimple"
     # "strategies/deployRFPCommittee"
     # "strategies/deployRFPSimple"
     # "strategies/deployImpactStream"
+
+    #  === ZkSync Era ===
+    # "zksync/deployEraRegistry"
+    # "zksync/deployEraAllo"
+    # "zksync/deployEraContractFactory"
+    # "zksync/strategies/deployEraDonationVotingMerkleDistributionDirect"
+    # "zksync/strategies/deployEraDirectGrants"
+    # "zksync/strategies/deployEraDirectGrantsLite"
+    # "zksync/factory/deployDGLFactory"
+    # "zksync/factory/deployDVMDTFactory"
 )
 
 for script in "${scripts[@]}"; do
     # Execute the commands
     for n in "${networks[@]}"; do
         mkdir -p ./reports/deployment-logs/$script/$n/$timestamp/
-        cmd="bun hardhat run scripts/$script.ts --no-compile --network $n | tee ./reports/deployment-logs/$script/$n/$timestamp/deploy-$n_$timestamp.log"
+
+        if [ "$n" == "zkSyncTestnet" ] || [ "$n" == "zkSyncMainnet" ]; then
+            cmd="bun hardhat deploy-zksync --network $n --config era.hardhat.config.ts --script $script.ts | tee ./reports/deployment-logs/$script/$n/$timestamp/deploy-$n_$timestamp.log"
+        else
+            cmd="bun hardhat run scripts/$script.ts --no-compile --network $n | tee ./reports/deployment-logs/$script/$n/$timestamp/deploy-$n_$timestamp.log"
+        fi
+
         log "Executing: $cmd"
         # Extract the individual log file path from the command string
         individual_logfile=$(echo $cmd | grep -o "./reports/deployment-logs/$script/$n/[^ ]*/deploy-[^ ]*.log")
