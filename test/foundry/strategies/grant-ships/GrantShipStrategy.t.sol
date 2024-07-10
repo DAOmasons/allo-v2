@@ -417,21 +417,6 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
     }
 
-    function testRevert_allocate_MILESTONES_ALREADY_SET() public {
-        address recipientId = _register_recipient_allocate_accept_set_and_submit_milestones_distribute_single();
-
-        GrantShipStrategy.Status recipientStatus = IStrategy.Status.Accepted;
-        uint256 grantAmount = _grantAmount;
-
-        bytes memory data = abi.encode(recipientId, recipientStatus, grantAmount, reason);
-
-        vm.expectRevert(GrantShipStrategy.MILESTONES_ALREADY_SET.selector);
-
-        vm.startPrank(address(allo()));
-        ship(1).allocate(data, facilitator().wearer);
-        vm.stopPrank();
-    }
-
     function test_setMilestonesByShipOperator() public {
         address recipientId = _register_recipient_allocate_accept_set_milestones_by_ship_operator();
 

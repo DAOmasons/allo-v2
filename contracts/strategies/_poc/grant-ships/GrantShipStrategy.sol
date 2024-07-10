@@ -675,12 +675,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
         Recipient storage recipient = _recipients[recipientId];
 
-        // : figure out why we need this check
-        // Most grant managers would like to see a project's milestones before allocating funds
-        if (upcomingMilestone[recipientId] != 0) {
-            revert MILESTONES_ALREADY_SET();
-        }
-
         if (recipient.recipientStatus != Status.Accepted && recipientStatus == Status.Accepted) {
             IAllo.Pool memory pool = allo.getPool(poolId);
 
