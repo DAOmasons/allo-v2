@@ -41,6 +41,8 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
     event MilestoneRejected(address recipientId, uint256 milestoneId, Metadata reason);
+    event GrantComplete(address recipientId, uint256 amount);
+
     // ================= State ===================
 
     enum StopCycleAfter {
@@ -327,7 +329,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
     function test_register_recipient_reviewMilestonesEarly_accept() public {
         address recipientId = _register_acceptEarlyMilestones();
 
-        GrantShipStrategy.Recipient memory recipient = ship(1).getRecipient(profile1_anchor());
+        GrantShipStrategy.Recipient memory recipient = ship(1).getRecipient(recipientId);
 
         assertEq(uint8(recipient.milestonesReviewStatus), uint8(IStrategy.Status.Accepted));
     }
@@ -343,7 +345,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         assertTrue(recipient.recipientStatus == IStrategy.Status.Accepted);
     }
 
-    function test_register_reviewAccept_allocateAccept_submitEarlyMilestones() public {
+    function test_register_reviewAccept_allocateAccept_submitEarlyMilestone() public {
         address recipientId = _register_earlySubmitMilestone();
 
         GrantShipStrategy.Recipient memory recipient = ship(1).getRecipient(recipientId);
@@ -354,9 +356,33 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         assertEq(uint8(milestoneStatus1), uint8(IStrategy.Status.Pending));
     }
 
-    // function test_register_allocate_distribute_earlyMilestones() public {
-    //     address recipientId = _register_recipient_allocate_accept_distribute_earlyMilestones();
-    // }
+    function test_register_reviewAccept_allocateAccept_submitEarlyMilestones() public {
+        address recipientId = _register_earlySubmitMilestones();
+
+        GrantShipStrategy.Recipient memory recipient = ship(1).getRecipient(recipientId);
+
+        IStrategy.Status milestoneStatus1 = ship(1).getMilestoneStatus(recipientId, 0);
+        IStrategy.Status milestoneStatus2 = ship(1).getMilestoneStatus(recipientId, 1);
+
+        assertEq(uint8(recipient.milestonesReviewStatus), uint8(IStrategy.Status.Accepted));
+        assertEq(uint8(milestoneStatus1), uint8(IStrategy.Status.Pending));
+        assertEq(uint8(milestoneStatus2), uint8(IStrategy.Status.Pending));
+    }
+
+    function test_register_allocate_distribute_earlyMilestones() public {
+        address recipientId = _register_recipient_allocate_accept_distribute_earlyMilestones();
+
+        GrantShipStrategy.Recipient memory recipient = ship(1).getRecipient(recipientId);
+
+        GrantShipStrategy.Milestone[] memory milestones = ship(1).getMilestones(recipientId);
+
+        GrantShipStrategy.Milestone memory milestone1 = milestones[0];
+        GrantShipStrategy.Milestone memory milestone2 = milestones[1];
+
+        assertEq(uint8(recipient.milestonesReviewStatus), uint8(IStrategy.Status.Accepted));
+        assertEq(uint8(milestone1.milestoneStatus), uint8(IStrategy.Status.Accepted));
+        assertEq(uint8(milestone2.milestoneStatus), uint8(IStrategy.Status.Accepted));
+    }
 
     function testRevert_registerRecipient_UNAUTHORIZED() public {
         address recipientId = profile1_anchor();
@@ -1125,30 +1151,29 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
 
         vm.expectEmit(true, true, true, true);
         emit MilestoneSubmitted(recipientId, 0, Metadata(1, "milestone-1"));
+        emit MilestoneSubmitted(recipientId, 1, Metadata(1, "milestone-1"));
 
         vm.startPrank(profile1_member1());
         ship(1).submitMilestone(recipientId, 0, Metadata(1, "milestone-1"));
-        vm.stopPrank();
-
-        vm.startPrank(profile1_member1());
         ship(1).submitMilestone(recipientId, 1, Metadata(1, "milestone-1"));
         vm.stopPrank();
     }
 
     function _register_recipient_allocate_accept_distribute_earlyMilestones() internal returns (address recipientId) {
-        recipientId = _register_recipient_allocate_accept_earlyMilestones();
+        recipientId = _register_earlySubmitMilestones();
 
         address[] memory recipients = new address[](2);
 
         recipients[0] = recipientId;
         recipients[1] = recipientId;
 
-        // vm.expectEmit(true, true, true, true);
+        vm.expectEmit(true, true, true, true);
 
-        // emit MilestoneStatusChanged(recipientId, 0, IStrategy.Status.Accepted);
-        // emit Distributed(recipientId, recipient1(), 0.3e18, facilitator().wearer);
-        // emit MilestoneStatusChanged(recipientId, 1, IStrategy.Status.Accepted);
-        // emit Distributed(recipientId, recipient1(), 0.7e18, facilitator().wearer);
+        emit MilestoneStatusChanged(recipientId, 0, IStrategy.Status.Accepted);
+        emit Distributed(recipientId, recipient1(), 0.3e18, facilitator().wearer);
+        emit GrantComplete(recipientId, _grantAmount);
+        emit MilestoneStatusChanged(recipientId, 1, IStrategy.Status.Accepted);
+        emit Distributed(recipientId, recipient1(), 0.7e18, facilitator().wearer);
 
         vm.startPrank(shipOperator(1).wearer);
         allo().distribute(ship(1).getPoolId(), recipients, "");

@@ -434,7 +434,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
         Recipient memory recipient = _recipients[_recipientId];
 
-        // Check if the recipient is 'Accepted', otherwise revert
         if (recipient.recipientStatus != Status.Accepted) {
             revert RECIPIENT_NOT_ACCEPTED();
         }
@@ -446,16 +445,13 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         }
 
         Milestone storage milestone = recipientMilestones[_milestoneId];
-        // Check if the milestone is accepted, otherwise revert
+
         if (milestone.milestoneStatus == Status.Accepted) {
             revert MILESTONE_ALREADY_ACCEPTED();
         }
 
-        // Set the milestone metadata and status
-        milestone.metadata = _metadata;
         milestone.milestoneStatus = Status.Pending;
 
-        // Emit event for the milestone submission
         emit MilestoneSubmitted(_recipientId, _milestoneId, _metadata);
     }
 
