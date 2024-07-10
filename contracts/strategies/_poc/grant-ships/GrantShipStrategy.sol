@@ -369,16 +369,12 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     function setMilestones(address _recipientId, Milestone[] memory _milestones, Metadata calldata _reason) external {
         bool isRecipientCreator = (msg.sender == _recipientId) || _isProfileMember(_recipientId, msg.sender);
         bool isOperator = isShipOperator(msg.sender);
+
         if (!isRecipientCreator && !isOperator) {
             revert UNAUTHORIZED();
         }
 
         Recipient storage recipient = _recipients[_recipientId];
-
-        // Check if the recipient is accepted, otherwise revert
-        if (recipient.recipientStatus != Status.Accepted) {
-            revert RECIPIENT_NOT_ACCEPTED();
-        }
 
         if (recipient.milestonesReviewStatus == Status.Accepted) {
             revert MILESTONES_ALREADY_SET();

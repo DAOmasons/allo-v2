@@ -559,28 +559,6 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
     }
 
-    function testRevert_setMilestones_RECIPIENT_NOT_ACCEPTED() public {
-        GrantShipStrategy.Milestone[] memory milestones = new GrantShipStrategy.Milestone[](2);
-
-        milestones[0] = GrantShipStrategy.Milestone({
-            amountPercentage: 0.3e18,
-            metadata: Metadata(1, "milestone-1"),
-            milestoneStatus: IStrategy.Status.None
-        });
-
-        milestones[1] = GrantShipStrategy.Milestone({
-            amountPercentage: 0.7e18,
-            metadata: Metadata(1, "milestone-2"),
-            milestoneStatus: IStrategy.Status.None
-        });
-
-        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
-
-        vm.startPrank(shipOperator(1).wearer);
-        ship(1).setMilestones(randomAddress(), milestones, reason);
-        vm.stopPrank();
-    }
-
     function testRevert_setMilestones_INVALID_MILESTONE_exceed_percentage() public {
         address recipientId = _register_recipient_allocate_accept();
         GrantShipStrategy.Milestone[] memory milestones = new GrantShipStrategy.Milestone[](2);
