@@ -101,4 +101,44 @@ export const commonConfig: DeployParams = {
     proxyAdminOwner: "0x8C180840fcBb90CE8464B4eCd12ab0f840c6647C",
     permit2Address: "0x000000000022D473030F116dDEE9F6B43aC78BA3",
   },
+  // ZkSync Mainnet
+  324: {
+    proxyAdminOwner: "0x8C180840fcBb90CE8464B4eCd12ab0f840c6647C",
+    permit2Address: "0x0000000000225e31d15943971f47ad3022f714fa",
+  },
+  // ZkSync Sepolia Testnet
+  300: {
+    proxyAdminOwner: "0x8C180840fcBb90CE8464B4eCd12ab0f840c6647C",
+    permit2Address: "0x0000000000225e31d15943971f47ad3022f714fa",
+  },
+  // Filecoin Mainnet
+  314: {
+    proxyAdminOwner: "0x8C180840fcBb90CE8464B4eCd12ab0f840c6647C",
+    permit2Address: "0x",
+  },
+  // Filecoin Calibration Testnet
+  314159: {
+    proxyAdminOwner: "0x8C180840fcBb90CE8464B4eCd12ab0f840c6647C",
+    permit2Address: "0x",
+  },
+  // Sei Devnet
+  713715: {
+    proxyAdminOwner: "0x8C180840fcBb90CE8464B4eCd12ab0f840c6647C",
+    permit2Address: "0xC1087157eF2aaeBcaDB913251EA5B82c678424F7",
+  },
+  // Sei Mainnet
+  1329: {
+    proxyAdminOwner: "0x8C180840fcBb90CE8464B4eCd12ab0f840c6647C",
+    permit2Address: "0xb91DBEb018789d712EDC1a9e6C6AdC891BD5Ec2c",
+  },
+  // Lukso
+  42: {
+    proxyAdminOwner: "0x8C180840fcBb90CE8464B4eCd12ab0f840c6647C",
+    permit2Address: "0xb91DBEb018789d712EDC1a9e6C6AdC891BD5Ec2c",
+  },
+  // Lukso testnet
+  4201: {
+    proxyAdminOwner: "0x8C180840fcBb90CE8464B4eCd12ab0f840c6647C",
+    permit2Address: "0x3c795a334dE57813D8CA945D1A47D329D6Fc2151",
+  },
 };
