@@ -1378,6 +1378,22 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
     }
 
+    // COMPLETE GRANT
+
+    function testRevert_completeGrant_UNAUTHORIZED() public {
+        address recipientId = _register_recipient_allocate_accept();
+
+        vm.expectRevert(UNAUTHORIZED.selector);
+
+        vm.startPrank(randomAddress());
+        ship(1).completeGrant(recipientId, reason);
+        vm.stopPrank();
+
+        vm.startPrank(facilitator().wearer);
+        ship(1).completeGrant(recipientId, reason);
+        vm.stopPrank();
+    }
+
     // ===============================================================
     // ================ Reverts INCORRECT ORDER ======================
     // ===============================================================
@@ -1525,7 +1541,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
     }
 
-    function testRevert_completeGrant_before_milestones_are_submitted() public {
+    function testRevert_completeGrant_before_any_milestones_submitted() public {
         address recipientId = _register_earlySubmitMilestones();
 
         vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
@@ -1535,17 +1551,55 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
     }
 
-    function testRevert_completeGrant_before_all_milestones_are_distributed() public {
+    function testRevert_completeGrant_before_all_milestones_submitted() public {
         address recipientId = _register_earlySubmitMilestones();
 
-        vm.startPrank(profile1_member1());
-        ship(1).submitMilestone(recipientId, 0, Metadata(1, "milestone-1"));
+        address[] memory recipients = new address[](1);
+        uint256[] memory milestoneIndexes = new uint256[](1);
+
+        recipients[0] = recipientId;
+        milestoneIndexes[0] = 0;
+
+        bytes memory data = abi.encode(milestoneIndexes);
+
+        uint256 poolId = ship(1).getPoolId();
+
+        vm.startPrank(shipOperator(1).wearer);
+        allo().distribute(poolId, recipients, data);
         vm.stopPrank();
 
         vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
 
         vm.startPrank(profile1_member1());
         ship(1).completeGrant(recipientId, reason);
+        vm.stopPrank();
+    }
+
+    function testRevert_completeGrant_after_clawback() public {
+        address recipientId = _register_recipient_allocate_accept_set_and_submit_milestones_distribute_single();
+
+        vm.startPrank(facilitator().wearer);
+        ship(1).clawbackGrant(recipientId, reason);
+        vm.stopPrank();
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(profile1_member1());
+        ship(1).completeGrant(recipientId, reason);
+        vm.stopPrank();
+    }
+
+    function testRevert_clawback_after_completeGrant() public {
+        address recipientId = _register_recipient_allocate_accept_set_and_submit_milestones_distribute_all();
+
+        vm.startPrank(profile1_member1());
+        ship(1).completeGrant(recipientId, reason);
+        vm.stopPrank();
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(facilitator().wearer);
+        ship(1).clawbackGrant(recipientId, reason);
         vm.stopPrank();
     }
 
