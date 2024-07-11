@@ -1297,6 +1297,12 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.startPrank(profile1_member1());
         ship(1).setMilestones(recipientId, milestones, reason);
         vm.stopPrank();
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(shipOperator(1).wearer);
+        ship(1).setMilestones(recipientId, milestones, reason);
+        vm.stopPrank();
     }
 
     // ===============================================
