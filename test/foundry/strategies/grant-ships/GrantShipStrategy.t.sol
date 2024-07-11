@@ -188,6 +188,14 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         assertEq(ship(1).allocatedGrantAmount(), 0);
     }
 
+    function test_complete_grant_with_early_set_milestones() public {
+        _register_allocate_set_accept_distribute_complete();
+
+        GrantShipStrategy.Recipient memory recipient = ship(1).getRecipient(profile1_anchor());
+
+        assertEq(uint8(recipient.recipientStatus), uint8(IStrategy.Status.None));
+    }
+
     // ===============================================================
     // ===================== Basic Functionality (Old Flow) =====================
     // ===============================================================
@@ -667,6 +675,130 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
     }
 
+    function test_cannot_doublespend_on_distribute() public {
+        address recipientId = _register_recipient_allocate_accept_set_and_submit_milestones();
+
+        address[] memory recipients = new address[](1);
+
+        recipients[0] = recipientId;
+        uint256 poolId = ship(1).getPoolId();
+
+        uint256[] memory milestoneIndexes = new uint256[](1);
+
+        milestoneIndexes[0] = 0;
+
+        bytes memory data = abi.encode(milestoneIndexes);
+
+        vm.startPrank(shipOperator(1).wearer);
+        allo().distribute(poolId, recipients, data);
+        vm.stopPrank();
+
+        vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
+
+        vm.startPrank(shipOperator(1).wearer);
+        allo().distribute(poolId, recipients, data);
+        vm.stopPrank();
+    }
+
+    function test_distribute_in_non_chonological_order() public returns (address recipientId) {
+        recipientId = _register_recipient_allocate_accept();
+        uint256 poolId = ship(1).getPoolId();
+
+        GrantShipStrategy.Milestone[] memory milestones = new GrantShipStrategy.Milestone[](5);
+        milestones[0] = GrantShipStrategy.Milestone({
+            amountPercentage: 0.1e18,
+            metadata: Metadata(1, "milestone-1"),
+            milestoneStatus: IStrategy.Status.None
+        });
+
+        milestones[1] = GrantShipStrategy.Milestone({
+            amountPercentage: 0.3e18,
+            metadata: Metadata(1, "milestone-2"),
+            milestoneStatus: IStrategy.Status.None
+        });
+
+        milestones[2] = GrantShipStrategy.Milestone({
+            amountPercentage: 0.2e18,
+            metadata: Metadata(1, "milestone-3"),
+            milestoneStatus: IStrategy.Status.None
+        });
+
+        milestones[3] = GrantShipStrategy.Milestone({
+            amountPercentage: 0.125e18,
+            metadata: Metadata(1, "milestone-4"),
+            milestoneStatus: IStrategy.Status.None
+        });
+
+        milestones[4] = GrantShipStrategy.Milestone({
+            amountPercentage: 0.275e18,
+            metadata: Metadata(1, "milestone-5"),
+            milestoneStatus: IStrategy.Status.None
+        });
+
+        vm.startPrank(shipOperator(1).wearer);
+        ship(1).setMilestones(recipientId, milestones, reason);
+        vm.stopPrank();
+
+        vm.startPrank(profile1_member1());
+        ship(1).submitMilestone(recipientId, 2, reason);
+        vm.stopPrank();
+
+        address[] memory recipients = new address[](1);
+        recipients[0] = profile1_anchor();
+
+        uint256[] memory milestoneIndexes = new uint256[](1);
+        milestoneIndexes[0] = 2;
+
+        bytes memory data = abi.encode(milestoneIndexes);
+
+        vm.startPrank(shipOperator(1).wearer);
+        allo().distribute(poolId, recipients, data);
+        vm.stopPrank();
+
+        assertEq(ARB().balanceOf(recipient1()), _grantAmount * 0.2e18 / 1e18);
+        assertEq(ARB().balanceOf(address(ship(1))), _poolAmount - (_grantAmount * 0.2e18 / 1e18));
+
+        vm.startPrank(profile1_member1());
+        ship(1).submitMilestone(recipientId, 0, reason);
+        ship(1).submitMilestone(recipientId, 4, reason);
+        vm.stopPrank();
+
+        recipients = new address[](2);
+
+        recipients[0] = recipientId;
+        recipients[1] = recipientId;
+
+        milestoneIndexes = new uint256[](2);
+        milestoneIndexes[0] = 0;
+        milestoneIndexes[1] = 4;
+
+        data = abi.encode(milestoneIndexes);
+
+        vm.startPrank(shipOperator(1).wearer);
+        allo().distribute(poolId, recipients, data);
+        vm.stopPrank();
+
+        assertEq(ARB().balanceOf(recipient1()), _grantAmount * (0.2e18 + 0.1e18 + 0.275e18) / 1e18);
+        assertEq(ARB().balanceOf(address(ship(1))), _poolAmount - (_grantAmount * (0.2e18 + 0.1e18 + 0.275e18) / 1e18));
+
+        vm.startPrank(recipientId);
+        ship(1).submitMilestone(recipientId, 1, reason);
+        ship(1).submitMilestone(recipientId, 3, reason);
+        vm.stopPrank();
+
+        milestoneIndexes[0] = 3;
+        milestoneIndexes[1] = 1;
+
+        data = abi.encode(milestoneIndexes);
+
+        vm.startPrank(shipOperator(1).wearer);
+        allo().distribute(poolId, recipients, data);
+        vm.stopPrank();
+
+        assertEq(ARB().balanceOf(recipient1()), _grantAmount);
+        assertEq(ARB().balanceOf(address(ship(1))), _poolAmount - _grantAmount);
+    }
+
     function test_interval_distribution() public {
         // so far contracts only test spending and funding in lump sums
         // this test is to ensure that the natural distribution of funds is working as expected
@@ -1056,6 +1188,48 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         uint256 poolId = ship(1).getPoolId();
 
         vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
+        allo().distribute(poolId, recipients, data);
+        vm.stopPrank();
+    }
+
+    function testRevert_distribute_ARRAY_MISMATCH() public {
+        address recipientId = _register_recipient_allocate_accept_set_and_submit_milestones();
+
+        address[] memory recipients = new address[](2);
+        uint256[] memory milestoneIndexes = new uint256[](1);
+
+        recipients[0] = recipientId;
+        recipients[1] = recipientId;
+
+        milestoneIndexes[0] = 0;
+
+        bytes memory data = abi.encode(milestoneIndexes);
+
+        uint256 poolId = ship(1).getPoolId();
+
+        vm.expectRevert(ARRAY_MISMATCH.selector);
+
+        vm.startPrank(shipOperator(1).wearer);
+        allo().distribute(poolId, recipients, data);
+        vm.stopPrank();
+    }
+
+    function testRevert_distribute_INVALID_MILESTONE_out_of_bounds() public {
+        address recipientId = _register_recipient_allocate_accept_set_and_submit_milestones();
+
+        address[] memory recipients = new address[](1);
+        uint256[] memory milestoneIndexes = new uint256[](1);
+
+        recipients[0] = recipientId;
+        milestoneIndexes[0] = 2;
+
+        bytes memory data = abi.encode(milestoneIndexes);
+
+        uint256 poolId = ship(1).getPoolId();
+
+        vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
+
+        vm.startPrank(shipOperator(1).wearer);
         allo().distribute(poolId, recipients, data);
         vm.stopPrank();
     }
@@ -1498,10 +1672,12 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
     function _register_allocate_set_accept_distribute_complete() internal returns (address recipientId) {
         recipientId = _register_recipient_allocate_accept_distribute_earlyMilestones();
 
-        vm.expectEmit(true, true, true, true);
-        emit GrantComplete(recipientId, dummyMetadata);
+        GrantShipStrategy.Recipient memory recipient = ship(1).getRecipient(recipientId);
 
-        ship(1).complete(recipientId, reason);
+        vm.expectEmit(true, true, true, true);
+        emit GrantComplete(recipientId, recipient.grantAmount, dummyMetadata);
+
+        ship(1).completeGrant(recipientId, dummyMetadata);
     }
 
     function _register_recipient_allocate_accept() internal returns (address recipientId) {
