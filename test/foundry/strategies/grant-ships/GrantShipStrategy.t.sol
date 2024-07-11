@@ -1515,6 +1515,40 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
     }
 
+    function testRevert_completeGrant_before_allocate() public {
+        address recipientId = _register_recipient();
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(profile1_member1());
+        ship(1).completeGrant(recipientId, reason);
+        vm.stopPrank();
+    }
+
+    function testRevert_completeGrant_before_milestones_are_submitted() public {
+        address recipientId = _register_earlySubmitMilestones();
+
+        vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
+
+        vm.startPrank(profile1_member1());
+        ship(1).completeGrant(recipientId, reason);
+        vm.stopPrank();
+    }
+
+    function testRevert_completeGrant_before_all_milestones_are_distributed() public {
+        address recipientId = _register_earlySubmitMilestones();
+
+        vm.startPrank(profile1_member1());
+        ship(1).submitMilestone(recipientId, 0, Metadata(1, "milestone-1"));
+        vm.stopPrank();
+
+        vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
+
+        vm.startPrank(profile1_member1());
+        ship(1).completeGrant(recipientId, reason);
+        vm.stopPrank();
+    }
+
     // ===============================================
     // ================= Helpers =====================
     // ===============================================
@@ -1677,7 +1711,9 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.expectEmit(true, true, true, true);
         emit GrantComplete(recipientId, recipient.grantAmount, dummyMetadata);
 
+        vm.startPrank(shipOperator(1).wearer);
         ship(1).completeGrant(recipientId, dummyMetadata);
+        vm.stopPrank();
     }
 
     function _register_recipient_allocate_accept() internal returns (address recipientId) {
@@ -1955,6 +1991,8 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
             return;
         }
 
+        vm.startPrank(_granteeTeamMember);
         ship(_shipIndex).completeGrant(_granteeAnchor, dummyMetadata);
+        vm.stopPrank();
     }
 }

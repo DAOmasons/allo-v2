@@ -444,6 +444,14 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     }
 
     function completeGrant(address _recipientId, Metadata calldata _metadata) external {
+        bool isRecipientCreator = (msg.sender == _recipientId) || _isProfileMember(_recipientId, msg.sender);
+        bool isOperator = isShipOperator(msg.sender);
+        bool isGameFacilitator = isGameFacilitator(msg.sender);
+
+        if (!isRecipientCreator && !isOperator && !isGameFacilitator) {
+            revert UNAUTHORIZED();
+        }
+
         Recipient storage recipient = _recipients[_recipientId];
 
         if (recipient.recipientStatus != Status.Accepted) {
