@@ -42,6 +42,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
     event Transfer(address indexed from, address indexed to, uint256 value);
     event MilestoneRejected(address recipientId, uint256 milestoneId, Metadata reason);
     event GrantComplete(address recipientId, uint256 amount);
+    event GrantClawback(address recipientId, Metadata reason, uint256 amountReturned);
 
     // ================= State ===================
 
@@ -91,11 +92,6 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
     // 4. Allocate (or reject)
     // 5. Submit Milestones
     // 6. Distribute
-
-    // With Peripheral Functionalities:
-    // - Set Pool Active
-    // - Withdraw
-    // - Post Update
 
     function test_registerRecipient_earlyMilestones() public {
         _register_recipient_setMilestones_early();
@@ -202,11 +198,6 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
     // 4. Approve Milestones (or Reject)
     // 5. Submit Milestones
     // 6. Distribute
-
-    // With Peripheral Functionalities:
-    // - Set Pool Active
-    // - Withdraw
-    // - Post Update
 
     function test_registerRecipient() public {
         address recipientId = _register_recipient();
@@ -440,6 +431,54 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         assertEq(ship(1).unresolvedRedFlags(), 0);
         assertEq(uint8(yellowFlag.flagType), uint8(GrantShipStrategy.FlagType.Yellow));
         assertTrue(yellowFlag.isResolved);
+    }
+
+    function test_clawbackGrant() public {
+        address recipientId = _register_recipient_acceptMilestones_allocate();
+
+        assertEq(ship(1).allocatedGrantAmount(), _grantAmount);
+
+        vm.expectEmit(true, true, true, true);
+
+        emit GrantClawback(recipientId, reason, _grantAmount);
+
+        vm.startPrank(facilitator().wearer);
+        ship(1).clawbackGrant(recipientId, reason);
+        vm.stopPrank();
+
+        GrantShipStrategy.Recipient memory recipient = ship(1).getRecipient(recipientId);
+
+        assertEq(ship(1).allocatedGrantAmount(), 0);
+        assertEq(uint8(recipient.recipientStatus), uint8(IStrategy.Status.None));
+        assertEq(uint8(recipient.milestonesReviewStatus), uint8(IStrategy.Status.None));
+        assertEq(recipient.grantAmount, 0);
+    }
+
+    function test_clawback_after_distribute_single() public {
+        address recipientId = _register_earlySubmitMilestone();
+        uint256 poolId = ship(1).getPoolId();
+
+        address[] memory recipients = new address[](1);
+
+        recipients[0] = recipientId;
+
+        assertEq(ship(1).allocatedGrantAmount(), _grantAmount);
+
+        vm.startPrank(shipOperator(1).wearer);
+        allo().distribute(poolId, recipients, "");
+        vm.stopPrank();
+
+        assertEq(ship(1).allocatedGrantAmount(), _grantAmount - (_grantAmount * 0.3e18 / 1e18));
+
+        vm.expectEmit(true, true, true, true);
+
+        emit GrantClawback(recipientId, reason, _grantAmount - (_grantAmount * 0.3e18 / 1e18));
+
+        vm.startPrank(facilitator().wearer);
+        ship(1).clawbackGrant(recipientId, reason);
+        vm.stopPrank();
+
+        assertEq(ship(1).allocatedGrantAmount(), 0);
     }
 
     function test_postUpdate() public {

@@ -113,6 +113,9 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     ///@notice Emitted when a flag is resolved
     event FlagResolved(uint256 nonce, Metadata resolutionReason);
 
+    // @notice Emitted when a facilitator claws back a grant
+    event GrantClawback(address recipientId, Metadata reason, uint256 amountReturned);
+
     /// @notice Emitted for the review of the milestones. Contains a 'reason'
     event MilestonesReviewed(address recipientId, Status status, Metadata reason);
 
@@ -418,6 +421,39 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
             emit MilestonesReviewed(_recipientId, _status, _reason);
         }
+    }
+
+    function clawbackGrant(address _recipientId, Metadata calldata _reason) external onlyGameFacilitator(msg.sender) {
+        Recipient storage recipient = _recipients[_recipientId];
+
+        if (recipient.recipientStatus != Status.Accepted) {
+            revert RECIPIENT_NOT_ACCEPTED();
+        }
+
+        uint256 recipientMilestonesLength = milestones[_recipientId].length;
+        uint256 amountReturned;
+
+        for (uint256 i; i < recipientMilestonesLength; i++) {
+            Milestone storage milestone = milestones[_recipientId][i];
+            if (milestone.milestoneStatus == Status.Accepted) {
+                continue;
+            }
+            milestone.milestoneStatus = Status.None;
+
+            amountReturned += recipient.grantAmount * milestone.amountPercentage / 1e18;
+        }
+
+        if (amountReturned == 0) {
+            revert ALLOCATION_NOT_ACTIVE();
+        }
+
+        allocatedGrantAmount -= amountReturned;
+
+        recipient.recipientStatus = Status.None;
+        recipient.milestonesReviewStatus = Status.None;
+        recipient.grantAmount = 0;
+
+        emit GrantClawback(_recipientId, _reason, amountReturned);
     }
 
     /// @notice Submit milestone by the recipient.
