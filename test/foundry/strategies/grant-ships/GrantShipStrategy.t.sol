@@ -327,13 +327,11 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         address recipientId = _register_recipient_allocate_accept_set_and_submit_milestones_distribute_all();
 
         GrantShipStrategy.Milestone[] memory milestones = ship(1).getMilestones(recipientId);
-        uint256 upcomingMilestone = ship(1).getUpcomingMilestone(recipientId);
 
         assertEq(uint8(milestones[0].milestoneStatus), uint8(IStrategy.Status.Accepted));
         assertEq(uint8(milestones[0].milestoneStatus), uint8(IStrategy.Status.Accepted));
 
         assertEq(milestones.length, 2);
-        assertEq(upcomingMilestone, 2);
 
         assertEq(ARB().balanceOf(recipient1()), _grantAmount);
         assertEq(ARB().balanceOf(address(ship(1))), _poolAmount - _grantAmount);
@@ -464,8 +462,14 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
 
         assertEq(ship(1).allocatedGrantAmount(), _grantAmount);
 
+        uint256[] memory milestoneIndexes = new uint256[](1);
+
+        milestoneIndexes[0] = 0;
+
+        bytes memory data = abi.encode(milestoneIndexes);
+
         vm.startPrank(shipOperator(1).wearer);
-        allo().distribute(poolId, recipients, "");
+        allo().distribute(poolId, recipients, data);
         vm.stopPrank();
 
         assertEq(ship(1).allocatedGrantAmount(), _grantAmount - (_grantAmount * 0.3e18 / 1e18));
@@ -641,10 +645,16 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         recipients[0] = recipientId;
         uint256 poolId = ship(1).getPoolId();
 
+        uint256[] memory milestoneIndexes = new uint256[](1);
+
+        milestoneIndexes[0] = 0;
+
+        bytes memory data = abi.encode(milestoneIndexes);
+
         vm.expectRevert(GrantShipStrategy.UNRESOLVED_RED_FLAGS.selector);
 
         vm.startPrank(shipOperator(1).wearer);
-        allo().distribute(poolId, recipients, "");
+        allo().distribute(poolId, recipients, data);
         vm.stopPrank();
 
         vm.startPrank(facilitator().wearer);
@@ -652,7 +662,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
 
         vm.startPrank(shipOperator(1).wearer);
-        allo().distribute(poolId, recipients, "");
+        allo().distribute(poolId, recipients, data);
         vm.stopPrank();
     }
 
@@ -1027,14 +1037,20 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         ship(1).rejectMilestone(recipientId, 0, reason);
 
         address[] memory recipients = new address[](2);
+        uint256[] memory milestoneIndexes = new uint256[](2);
 
         recipients[0] = recipientId;
         recipients[1] = recipientId;
 
+        milestoneIndexes[0] = 0;
+        milestoneIndexes[1] = 1;
+
+        bytes memory data = abi.encode(milestoneIndexes);
+
         uint256 poolId = ship(1).getPoolId();
 
         vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
-        allo().distribute(poolId, recipients, "");
+        allo().distribute(poolId, recipients, data);
         vm.stopPrank();
     }
 
@@ -1206,10 +1222,18 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         address[] memory recipients = new address[](1);
         recipients[0] = recipientId;
 
+        uint256[] memory milestoneIndexes = new uint256[](1);
+
+        recipients[0] = recipientId;
+
+        milestoneIndexes[0] = 0;
+
+        bytes memory data = abi.encode(milestoneIndexes);
+
         vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
 
         vm.startPrank(shipOperator(1).wearer);
-        allo().distribute(poolId, recipients, "");
+        allo().distribute(poolId, recipients, data);
         vm.stopPrank();
     }
 
@@ -1267,12 +1291,18 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         address[] memory recipients = new address[](1);
         recipients[0] = recipientId;
 
+        uint256[] memory milestoneIndexes = new uint256[](1);
+
+        milestoneIndexes[0] = 0;
+
+        bytes memory data = abi.encode(milestoneIndexes);
+
         uint256 poolId = ship(1).getPoolId();
 
         vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
 
         vm.startPrank(shipOperator(1).wearer);
-        allo().distribute(poolId, recipients, "");
+        allo().distribute(poolId, recipients, data);
         vm.stopPrank();
     }
 
@@ -1437,9 +1467,15 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         recipientId = _register_earlySubmitMilestones();
 
         address[] memory recipients = new address[](2);
+        uint256[] memory milestoneIndexes = new uint256[](2);
 
         recipients[0] = recipientId;
         recipients[1] = recipientId;
+
+        milestoneIndexes[0] = 0;
+        milestoneIndexes[1] = 1;
+
+        bytes memory data = abi.encode(milestoneIndexes);
 
         vm.expectEmit(true, true, true, true);
 
@@ -1450,7 +1486,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         emit Distributed(recipientId, recipient1(), 0.7e18, facilitator().wearer);
 
         vm.startPrank(shipOperator(1).wearer);
-        allo().distribute(ship(1).getPoolId(), recipients, "");
+        allo().distribute(ship(1).getPoolId(), recipients, data);
         vm.stopPrank();
     }
 
@@ -1561,9 +1597,18 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         recipientId = _register_recipient_allocate_accept_set_and_submit_milestones();
 
         address[] memory recipients = new address[](2);
+        uint256[] memory milestoneIndexes = new uint256[](2);
 
         recipients[0] = recipientId;
         recipients[1] = recipientId;
+
+        recipients[0] = recipientId;
+        recipients[1] = recipientId;
+
+        milestoneIndexes[0] = 0;
+        milestoneIndexes[1] = 1;
+
+        bytes memory data = abi.encode(milestoneIndexes);
 
         vm.expectEmit(true, true, true, true);
 
@@ -1571,7 +1616,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         emit Distributed(recipientId, recipient1(), 0.7e18, facilitator().wearer);
 
         vm.startPrank(shipOperator(1).wearer);
-        allo().distribute(ship(1).getPoolId(), recipients, "");
+        allo().distribute(ship(1).getPoolId(), recipients, data);
         vm.stopPrank();
     }
 
@@ -1584,7 +1629,12 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         address[] memory recipients = new address[](1);
 
         recipients[0] = recipientId;
-        // recipients[1] = recipientId;
+
+        uint256[] memory milestoneIndexes = new uint256[](1);
+
+        milestoneIndexes[0] = 0;
+
+        bytes memory data = abi.encode(milestoneIndexes);
 
         vm.expectEmit(true, true, true, true);
 
@@ -1592,7 +1642,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         emit Distributed(recipientId, recipient1(), 0.3e18, facilitator().wearer);
 
         vm.startPrank(shipOperator(1).wearer);
-        allo().distribute(ship(1).getPoolId(), recipients, "");
+        allo().distribute(ship(1).getPoolId(), recipients, data);
         vm.stopPrank();
     }
 
@@ -1671,8 +1721,12 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         address[] memory recipients = new address[](1);
         recipients[0] = _granteeAnchor;
 
+        uint256[] memory milestoneIndexes = new uint256[](1);
+        milestoneIndexes[0] = 0;
+        bytes memory data = abi.encode(milestoneIndexes);
+
         vm.startPrank(shipOperator);
-        allo().distribute(poolId, recipients, "");
+        allo().distribute(poolId, recipients, data);
         vm.stopPrank();
 
         if (_stopCycleAfter == StopCycleAfter.Milestone1) {
@@ -1683,8 +1737,12 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         ship(_shipIndex).submitMilestone(_granteeAnchor, 1, dummyMetadata);
         vm.stopPrank();
 
+        milestoneIndexes = new uint256[](1);
+        milestoneIndexes[0] = 1;
+        data = abi.encode(milestoneIndexes);
+
         vm.startPrank(shipOperator);
-        allo().distribute(poolId, recipients, "");
+        allo().distribute(poolId, recipients, data);
         vm.stopPrank();
 
         if (_stopCycleAfter == StopCycleAfter.Milestone2) {
@@ -1695,8 +1753,12 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         ship(_shipIndex).submitMilestone(_granteeAnchor, 2, dummyMetadata);
         vm.stopPrank();
 
+        milestoneIndexes = new uint256[](1);
+        milestoneIndexes[0] = 2;
+        data = abi.encode(milestoneIndexes);
+
         vm.startPrank(shipOperator);
-        allo().distribute(poolId, recipients, "");
+        allo().distribute(poolId, recipients, data);
         vm.stopPrank();
 
         if (_stopCycleAfter == StopCycleAfter.Milestone3) {

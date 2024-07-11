@@ -170,10 +170,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// @dev 'recipientId' to 'Milestone'
     mapping(address => Milestone[]) public milestones;
 
-    /// @notice This maps recipients to their upcoming milestone
-    /// @dev 'recipientId' to 'nextMilestone'
-    mapping(address => uint256) public upcomingMilestone;
-
     /// ===============================
     /// ======== Modifiers ============
     /// ===============================
@@ -247,21 +243,17 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         ShipInitData memory _initData,
         address payable _gameManagerAddress
     ) internal {
-        // Initialize the BaseStrategy
         __BaseStrategy_init(_poolId);
 
         _gameManager = GameManagerStrategy(_gameManagerAddress);
 
         _hats = IHats(address(_gameManager.getHatsAddress()));
 
-        // Set the strategy specific variables
         operatorHatId = _initData.operatorHatId;
         facilitatorHatId = _initData.facilitatorHatId;
         shipRegistryAnchor = _initData.recipientId;
         _registry = allo.getRegistry();
 
-        // Set the pool to active - this is required for the strategy to work and distribute funds
-        // NOTE: There may be some cases where you may want to not set this here, but will be strategy specific
         _setPoolActive(true);
 
         emit GrantShipInitialized(_poolId, operatorHatId, facilitatorHatId, shipRegistryAnchor);
@@ -329,13 +321,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// @return Milestone[] Returns the milestones for a 'recipientId'
     function getMilestones(address _recipientId) external view returns (Milestone[] memory) {
         return milestones[_recipientId];
-    }
-
-    /// @notice Get the upcoming milestone.
-    /// @param _recipientId ID of the recipient
-    /// @return uint256 Returns the upcoming milestone for a 'recipientId'
-    function getUpcomingMilestone(address _recipientId) external view returns (uint256) {
-        return upcomingMilestone[_recipientId];
     }
 
     /// @notice Checks if this Ship has any unresolved red flags
@@ -409,17 +394,14 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     {
         Recipient storage recipient = _recipients[_recipientId];
 
-        // Check if the recipient has any milestones, otherwise revert
         if (milestones[_recipientId].length == 0) {
             revert INVALID_MILESTONE();
         }
 
-        // Check if the recipient is 'Accepted', otherwise revert
         if (recipient.milestonesReviewStatus == Status.Accepted) {
             revert MILESTONES_ALREADY_SET();
         }
 
-        // Check if the status is 'Accepted' or 'Rejected', otherwise revert
         if (_status == Status.Accepted || _status == Status.Rejected) {
             recipient.milestonesReviewStatus = _status;
 
@@ -453,7 +435,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         recipient.milestonesReviewStatus = Status.None;
         recipient.grantAmount = 0;
         delete milestones[_recipientId];
-        delete upcomingMilestone[_recipientId];
 
         emit GrantClawback(_recipientId, _reason, amountReturned);
     }
@@ -465,8 +446,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// @param _recipientId ID of the recipient
     /// @param _demoMetadata The proof of work completed
     function submitMilestone(address _recipientId, uint256 _milestoneId, Metadata calldata _demoMetadata) external {
-        // Check if the '_recipientId' is the same as 'msg.sender' and if it is NOT, revert. This
-        // also checks if the '_recipientId' is a member of the 'Profile' and if it is NOT, revert.
         if (_recipientId != msg.sender && !_isProfileMember(_recipientId, msg.sender)) {
             revert UNAUTHORIZED();
         }
@@ -511,15 +490,12 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
         Milestone storage milestone = recipientMilestones[_milestoneId];
 
-        // Check if the milestone is NOT 'Accepted' already, and revert if it is
         if (milestone.milestoneStatus == Status.Accepted) {
             revert MILESTONE_ALREADY_ACCEPTED();
         }
 
-        // Set the milestone status to 'Rejected'
         milestone.milestoneStatus = Status.Rejected;
 
-        // Emit event for the milestone rejection
         emit MilestoneRejected(_recipientId, _milestoneId, _reason);
     }
 
@@ -534,11 +510,9 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     {
         Flag storage flag = violationFlags[_nonce];
 
-        // check for potential nonce collisions or overwrites
         if (flag.flagType != FlagType.None) {
             revert FLAG_ALREADY_EXISTS();
         }
-        // check for correct flag type
         if (_flagType != FlagType.Red && _flagType != FlagType.Yellow) {
             revert INVALID_FLAG();
         }
@@ -604,16 +578,10 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
         poolAmount -= _amount;
 
-        // get pool token address
         IERC20 token = IERC20(allo.getPool(poolId).token);
-        // approve Allo to transfer funds
         token.approve(address(allo), _amount);
-        // Transfer the amount to the pool manager
-
-        // token.transferFrom(address(this), msg.sender, _amount);
         allo.fundPool(_gameManager.getPoolId(), _amount);
 
-        // Emit event for the withdrawal
         emit PoolWithdraw(_amount);
     }
 
@@ -624,8 +592,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// @notice Register a recipient to the pool.
     /// @dev Emits a 'Registered()' event
     /// @param _data The data to be decoded
-    /// @custom:data when 'registryGating' is 'true' -> (address recipientId, address receivingAddress, uint256 grantAmount, Metadata metadata)
-    ///              when 'registryGating' is 'false' -> (address receivingAddress, address registryAnchor, uint256 grantAmount, Metadata metadata)
+    /// @custom:data (address recipientId, address receivingAddress, uint256 grantAmount, Metadata metadata)
     /// @param _sender The sender of the transaction
     /// @return recipientId The id of the recipient
     function _registerRecipient(bytes memory _data, address _sender)
@@ -646,17 +613,14 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
             revert UNAUTHORIZED();
         }
 
-        // Check if the grant amount is required and if it is, check if it is greater than 0, otherwise revert
         if (grantAmount == 0) {
             revert INVALID_REGISTRATION();
         }
 
-        // Check if the recipient is not already accepted, otherwise revert
         if (_recipients[recipientId].recipientStatus == Status.Accepted) {
             revert RECIPIENT_ALREADY_ACCEPTED();
         }
 
-        // Check if the metadata is required and if it is, check if it is valid, otherwise revert
         if ((bytes(metadata.pointer).length == 0 || metadata.protocol == 0)) {
             revert INVALID_METADATA();
         }
@@ -670,7 +634,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         // Therefore, we should delete existing milestone data if the recipient is reapplying
         if (milestones[recipientId].length > 0 && _recipients[recipientId].recipientStatus == Status.None) {
             delete milestones[recipientId];
-            delete upcomingMilestone[recipientId];
         }
 
         // Create the recipient instance
@@ -682,10 +645,8 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
             milestonesReviewStatus: Status.Pending
         });
 
-        // Add the recipient to the accepted recipient ids mapping
         _recipients[recipientId] = recipient;
 
-        // Emit event for the registration
         emit Registered(recipientId, _data, _sender);
     }
 
@@ -748,7 +709,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// @dev Cannot distribute funds if there are unresolved red flags
     /// @param _recipientIds The recipient ids of the distribution
     /// @param _sender The sender of the distribution
-    function _distribute(address[] memory _recipientIds, bytes memory, address _sender)
+    function _distribute(address[] memory _recipientIds, bytes memory _data, address _sender)
         internal
         virtual
         override
@@ -756,8 +717,16 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         onlyShipOperator(_sender)
     {
         uint256 recipientLength = _recipientIds.length;
+        (uint256[] memory milestoneIndexes) = abi.decode(_data, (uint256[]));
+
+        if (milestoneIndexes.length != recipientLength) {
+            revert ARRAY_MISMATCH();
+        }
+
         for (uint256 i; i < recipientLength;) {
-            _distributeUpcomingMilestone(_recipientIds[i], _sender);
+            uint256 milestoneIndex = milestoneIndexes[i];
+
+            _distributeUpcomingMilestone(_recipientIds[i], _sender, milestoneIndex);
             unchecked {
                 i++;
             }
@@ -768,27 +737,20 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// @dev Emits 'MilestoneStatusChanged() and 'Distributed()' events.
     /// @param _recipientId The recipient of the distribution
     /// @param _sender The sender of the distribution
-    function _distributeUpcomingMilestone(address _recipientId, address _sender) private {
-        uint256 milestoneToBeDistributed = upcomingMilestone[_recipientId];
-
+    function _distributeUpcomingMilestone(address _recipientId, address _sender, uint256 _milestoneIndex) private {
         Milestone[] storage recipientMilestones = milestones[_recipientId];
 
         Recipient storage recipient = _recipients[_recipientId];
 
         // Ensure milestone exists
-        if (milestoneToBeDistributed >= recipientMilestones.length) {
+        if (_milestoneIndex >= recipientMilestones.length) {
             revert INVALID_MILESTONE();
         }
 
-        Milestone storage milestone = recipientMilestones[milestoneToBeDistributed];
+        Milestone storage milestone = recipientMilestones[_milestoneIndex];
 
         if (milestone.milestoneStatus != Status.Pending) {
             revert INVALID_MILESTONE();
-        }
-
-        if (milestoneToBeDistributed == recipientMilestones.length - 1) {
-            recipient.recipientStatus = Status.None;
-            emit GrantComplete(_recipientId, recipient.grantAmount);
         }
 
         // Calculate the amount to be distributed for the milestone
@@ -798,20 +760,15 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
             revert NOT_ENOUGH_FUNDS();
         }
 
-        // Set the milestone status to 'Accepted'
         milestone.milestoneStatus = Status.Accepted;
-        // Increment the upcoming milestone
-        upcomingMilestone[_recipientId]++;
 
-        // Get the pool, subtract the amount and transfer to the recipient
         IAllo.Pool memory pool = allo.getPool(poolId);
         poolAmount -= amount;
         allocatedGrantAmount -= amount;
 
         _transferAmount(pool.token, recipient.receivingAddress, amount);
 
-        // Emit events for the milestone and the distribution
-        emit MilestoneStatusChanged(_recipientId, milestoneToBeDistributed, Status.Accepted);
+        emit MilestoneStatusChanged(_recipientId, _milestoneIndex, Status.Accepted);
         emit Distributed(_recipientId, recipient.receivingAddress, amount, _sender);
     }
 
@@ -844,26 +801,21 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     function _setMilestones(address _recipientId, Milestone[] memory _milestones) internal {
         uint256 totalAmountPercentage;
 
-        // Clear out the milestones and reset the index to 0
         if (milestones[_recipientId].length > 0) {
             delete milestones[_recipientId];
         }
 
         uint256 milestonesLength = _milestones.length;
 
-        // Loop through the milestones and set them
         for (uint256 i; i < milestonesLength;) {
             Milestone memory milestone = _milestones[i];
 
-            // Reverts if the milestone status is 'None'
             if (milestone.milestoneStatus != Status.None) {
                 revert INVALID_MILESTONE();
             }
 
-            // Add the milestone percentage amount to the total percentage amount
             totalAmountPercentage += milestone.amountPercentage;
 
-            // Add the milestone to the recipient's milestones
             milestones[_recipientId].push(milestone);
 
             emit MilestoneCreated(_recipientId, i, milestone.amountPercentage, milestone.metadata);
