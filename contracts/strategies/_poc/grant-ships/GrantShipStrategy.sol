@@ -52,6 +52,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         Metadata metadata;
         Status recipientStatus;
         Status milestonesReviewStatus;
+        uint256 grantIndex;
     }
 
     /// ===============================
@@ -129,7 +130,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     event UpdatePosted(string tag, uint256 role, address recipientId, Metadata content);
 
     /// @notice Emitted when a grant is completed
-    event GrantComplete(address recipientId, uint256 amount);
+    event GrantComplete(address recipientId, uint256 amount, Metadata metadata);
 
     /// ================================
     /// ========== Storage =============
@@ -429,6 +430,9 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
             amountReturned += recipient.grantAmount * milestone.amountPercentage / 1e18;
         }
 
+        if (amountReturned > allocatedGrantAmount || amountReturned == 0) {
+            revert MISMATCH();
+        }
         allocatedGrantAmount -= amountReturned;
 
         recipient.recipientStatus = Status.None;
@@ -437,6 +441,27 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
         delete milestones[_recipientId];
 
         emit GrantClawback(_recipientId, _reason, amountReturned);
+    }
+
+    function completeGrant(address _recipientId, Metadata calldata _metadata) external {
+        Recipient storage recipient = _recipients[_recipientId];
+
+        if (recipient.recipientStatus != Status.Accepted) {
+            revert RECIPIENT_NOT_ACCEPTED();
+        }
+
+        uint256 recipientMilestonesLength = milestones[_recipientId].length;
+
+        for (uint256 i; i < recipientMilestonesLength; i++) {
+            Milestone storage milestone = milestones[_recipientId][i];
+            if (milestone.milestoneStatus != Status.Accepted) {
+                revert INVALID_MILESTONE();
+            }
+        }
+
+        recipient.recipientStatus = Status.None;
+
+        emit GrantComplete(_recipientId, recipient.grantAmount, _metadata);
     }
 
     /// @notice Submit milestone by the recipient.
@@ -636,13 +661,16 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
             delete milestones[recipientId];
         }
 
+        uint256 currentGrantIndex = _recipients[recipientId].grantIndex;
+
         // Create the recipient instance
         Recipient memory recipient = Recipient({
             receivingAddress: receivingAddress,
             grantAmount: grantAmount,
             metadata: metadata,
             recipientStatus: Status.Pending,
-            milestonesReviewStatus: Status.Pending
+            milestonesReviewStatus: Status.Pending,
+            grantIndex: currentGrantIndex + 1
         });
 
         _recipients[recipientId] = recipient;

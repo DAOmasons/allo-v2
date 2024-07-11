@@ -41,7 +41,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
     event Approval(address indexed owner, address indexed spender, uint256 value);
     event Transfer(address indexed from, address indexed to, uint256 value);
     event MilestoneRejected(address recipientId, uint256 milestoneId, Metadata reason);
-    event GrantComplete(address recipientId, uint256 amount);
+    event GrantComplete(address recipientId, uint256 amount, Metadata metadata);
     event GrantClawback(address recipientId, Metadata reason, uint256 amountReturned);
 
     // ================= State ===================
@@ -92,6 +92,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
     // 4. Allocate (or reject)
     // 5. Submit Milestones
     // 6. Distribute
+    // 7. Complete Grant
 
     function test_registerRecipient_earlyMilestones() public {
         _register_recipient_setMilestones_early();
@@ -681,6 +682,11 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         assertEq(ARB().balanceOf(recipient1()), _poolAmount);
         assertEq(ARB().balanceOf(address(ship(1))), 0);
         assertEq(ship(1).getPoolAmount(), 0);
+
+        GrantShipStrategy.Recipient memory recipient = ship(1).getRecipient(profile1_anchor());
+
+        assertEq(uint8(recipient.recipientStatus), uint8(IStrategy.Status.None));
+        assertEq(recipient.grantIndex, 3);
     }
 
     function test_manyGrantees() public {
@@ -1191,7 +1197,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
     function testRevert_clawbackGrant_ALLOCATION_NOT_ACTIVE() public {
         address recipientId = _register_recipient_allocate_accept_distribute_earlyMilestones();
 
-        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+        vm.expectRevert(MISMATCH.selector);
 
         vm.startPrank(facilitator().wearer);
         ship(1).clawbackGrant(recipientId, reason);
@@ -1481,13 +1487,21 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
 
         emit MilestoneStatusChanged(recipientId, 0, IStrategy.Status.Accepted);
         emit Distributed(recipientId, recipient1(), 0.3e18, facilitator().wearer);
-        emit GrantComplete(recipientId, _grantAmount);
         emit MilestoneStatusChanged(recipientId, 1, IStrategy.Status.Accepted);
         emit Distributed(recipientId, recipient1(), 0.7e18, facilitator().wearer);
 
         vm.startPrank(shipOperator(1).wearer);
         allo().distribute(ship(1).getPoolId(), recipients, data);
         vm.stopPrank();
+    }
+
+    function _register_allocate_set_accept_distribute_complete() internal returns (address recipientId) {
+        recipientId = _register_recipient_allocate_accept_distribute_earlyMilestones();
+
+        vm.expectEmit(true, true, true, true);
+        emit GrantComplete(recipientId, dummyMetadata);
+
+        ship(1).complete(recipientId, reason);
     }
 
     function _register_recipient_allocate_accept() internal returns (address recipientId) {
@@ -1764,5 +1778,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         if (_stopCycleAfter == StopCycleAfter.Milestone3) {
             return;
         }
+
+        ship(_shipIndex).completeGrant(_granteeAnchor, dummyMetadata);
     }
 }
