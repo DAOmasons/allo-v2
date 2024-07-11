@@ -79,6 +79,9 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// @notice Throws when the allocation exceeds the pool amount.
     error ALLOCATION_EXCEEDS_POOL_AMOUNT();
 
+    /// @notice Throws when the recipient or milestone is an incorrect status
+    error INVALID_STATUS();
+
     /// ===============================
     /// ========== Events =============
     /// ===============================
@@ -411,10 +414,8 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
         // Check if the status is 'Accepted' or 'Rejected', otherwise revert
         if (_status == Status.Accepted || _status == Status.Rejected) {
-            // Set the status of the milestone review
             recipient.milestonesReviewStatus = _status;
 
-            // Emit event for the milestone review
             emit MilestonesReviewed(_recipientId, _status, _reason);
         }
     }
@@ -434,13 +435,13 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
         Recipient memory recipient = _recipients[_recipientId];
 
-        if (recipient.recipientStatus != Status.Accepted) {
+        if (recipient.recipientStatus != Status.Accepted || recipient.milestonesReviewStatus != Status.Accepted) {
             revert RECIPIENT_NOT_ACCEPTED();
         }
 
         Milestone[] storage recipientMilestones = milestones[_recipientId];
 
-        if (_milestoneId > recipientMilestones.length) {
+        if (_milestoneId > recipientMilestones.length || recipientMilestones.length == 0) {
             revert INVALID_MILESTONE();
         }
 
@@ -671,7 +672,11 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
         Recipient storage recipient = _recipients[recipientId];
 
-        if (recipient.recipientStatus != Status.Accepted && recipientStatus == Status.Accepted) {
+        // Facilitators can only allocate to pending or rejected recipients
+        if (
+            (recipient.recipientStatus == Status.Pending || recipient.recipientStatus == Status.Rejected)
+                && recipientStatus == Status.Accepted
+        ) {
             IAllo.Pool memory pool = allo.getPool(poolId);
 
             allocatedGrantAmount += grantAmount;
@@ -688,11 +693,15 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
             // Emit event for the allocation
             emit Allocated(recipientId, recipient.grantAmount, pool.token, _sender);
-        } else if (recipient.recipientStatus != Status.Rejected && recipientStatus == Status.Rejected) {
+        }
+        // facilitators can only reject pending recipientsd
+        else if (recipient.recipientStatus == Status.Pending && recipientStatus == Status.Rejected) {
             recipient.recipientStatus = Status.Rejected;
 
             // Emit event for the rejection
             emit RecipientStatusChanged(recipientId, Status.Rejected, _reason);
+        } else {
+            revert INVALID_STATUS();
         }
     }
 
@@ -813,15 +822,12 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
                 revert INVALID_MILESTONE();
             }
 
-            // TODO: I see we check on line 649, but it seems we need to check when added it is NOT greater than 100%?
             // Add the milestone percentage amount to the total percentage amount
             totalAmountPercentage += milestone.amountPercentage;
 
             // Add the milestone to the recipient's milestones
             milestones[_recipientId].push(milestone);
 
-            // Emit event for the milestone creation
-            // needed for historical data
             emit MilestoneCreated(_recipientId, i, milestone.amountPercentage, milestone.metadata);
             unchecked {
                 i++;

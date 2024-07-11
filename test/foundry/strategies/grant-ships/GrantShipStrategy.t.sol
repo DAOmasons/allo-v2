@@ -1109,6 +1109,67 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
     }
 
+    // ===============================================================
+    // ================ Reverts INCORRECT ORDER ======================
+    // ===============================================================
+
+    function testRevert_registerRecipient_after_allocate() public {
+        address recipientId = _register_recipient_allocate_accept();
+        uint256 poolId = ship(1).getPoolId();
+
+        bytes memory data = abi.encode(recipientId, recipient1(), _grantAmount, dummyMetadata);
+
+        vm.expectRevert(RECIPIENT_ALREADY_ACCEPTED.selector);
+
+        vm.startPrank(profile1_member1());
+        allo().registerRecipient(poolId, data);
+        vm.stopPrank();
+    }
+
+    function testRevert_distribute_after_register() public {
+        address recipientId = _register_recipient();
+        uint256 poolId = ship(1).getPoolId();
+
+        address[] memory recipients = new address[](1);
+        recipients[0] = recipientId;
+
+        vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
+
+        vm.startPrank(shipOperator(1).wearer);
+        allo().distribute(poolId, recipients, "");
+        vm.stopPrank();
+    }
+
+    function testRevert_submitMilestone_before_setMilestones() public {
+        address recipientId = _register_recipient_allocate_accept();
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(profile1_member1());
+        ship(1).submitMilestone(recipientId, 0, Metadata(1, "milestone-1"));
+        vm.stopPrank();
+    }
+
+    function testRevert_submitMilestone_after_register() public {
+        address recipientId = _register_recipient();
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(profile1_member1());
+        ship(1).submitMilestone(recipientId, 0, Metadata(1, "milestone-1"));
+        vm.stopPrank();
+    }
+
+    function testRevert_newFlow_submitMilestone_before_allocate() public {
+        address recipientId = _register_acceptEarlyMilestones();
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(profile1_member1());
+        ship(1).submitMilestone(recipientId, 0, Metadata(1, "milestone-1"));
+        vm.stopPrank();
+    }
+
     // ===============================================
     // ================= Helpers =====================
     // ===============================================
