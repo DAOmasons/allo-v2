@@ -1122,6 +1122,8 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.stopPrank();
     }
 
+    // ISSUE FLAG
+
     function testRevert_issueFlag_UNAUTHORIZED() public {
         vm.expectRevert(UNAUTHORIZED.selector);
 
@@ -1145,6 +1147,38 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
 
         vm.startPrank(facilitator().wearer);
         ship(1).issueFlag(0, GrantShipStrategy.FlagType.Red, reason);
+        vm.stopPrank();
+    }
+
+    // CLAWBACK GRANT
+
+    function testRevert_clawbackGrant_UNAUTHORIZED() public {
+        address recipientId = _register_recipient_allocate_accept();
+
+        vm.expectRevert(UNAUTHORIZED.selector);
+
+        vm.startPrank(randomAddress());
+        ship(1).clawbackGrant(recipientId, reason);
+        vm.stopPrank();
+    }
+
+    function testRevert_clawbackGrant_RECIPIENT_NOT_ACCEPTED() public {
+        address recipientId = _register_recipient();
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(facilitator().wearer);
+        ship(1).clawbackGrant(recipientId, reason);
+        vm.stopPrank();
+    }
+
+    function testRevert_clawbackGrant_ALLOCATION_NOT_ACTIVE() public {
+        address recipientId = _register_recipient_allocate_accept_distribute_earlyMilestones();
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(facilitator().wearer);
+        ship(1).clawbackGrant(recipientId, reason);
         vm.stopPrank();
     }
 
@@ -1206,6 +1240,62 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
 
         vm.startPrank(profile1_member1());
         ship(1).submitMilestone(recipientId, 0, Metadata(1, "milestone-1"));
+        vm.stopPrank();
+    }
+
+    function testRevert_submitMilestone_after_clawback() public {
+        address recipientId = _register_recipient_allocate_accept_set_and_submit_milestones_distribute_single();
+
+        vm.startPrank(facilitator().wearer);
+        ship(1).clawbackGrant(recipientId, reason);
+        vm.stopPrank();
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(profile1_member1());
+        ship(1).submitMilestone(recipientId, 0, Metadata(1, "milestone-1"));
+        vm.stopPrank();
+    }
+
+    function testRevert_distribute_after_clawback() public {
+        address recipientId = _register_recipient_allocate_accept_set_and_submit_milestones_distribute_single();
+
+        vm.startPrank(facilitator().wearer);
+        ship(1).clawbackGrant(recipientId, reason);
+        vm.stopPrank();
+
+        address[] memory recipients = new address[](1);
+        recipients[0] = recipientId;
+
+        uint256 poolId = ship(1).getPoolId();
+
+        vm.expectRevert(GrantShipStrategy.INVALID_MILESTONE.selector);
+
+        vm.startPrank(shipOperator(1).wearer);
+        allo().distribute(poolId, recipients, "");
+        vm.stopPrank();
+    }
+
+    function testRevert_setMilestones_without_registering() public {
+        address recipientId = profile1_anchor();
+        GrantShipStrategy.Milestone[] memory milestones = new GrantShipStrategy.Milestone[](2);
+
+        milestones[0] = GrantShipStrategy.Milestone({
+            amountPercentage: 0.3e18,
+            metadata: Metadata(1, "milestone-1"),
+            milestoneStatus: IStrategy.Status.None
+        });
+
+        milestones[1] = GrantShipStrategy.Milestone({
+            amountPercentage: 0.7e18,
+            metadata: Metadata(1, "milestone-2"),
+            milestoneStatus: IStrategy.Status.None
+        });
+
+        vm.expectRevert(RECIPIENT_NOT_ACCEPTED.selector);
+
+        vm.startPrank(profile1_member1());
+        ship(1).setMilestones(recipientId, milestones, reason);
         vm.stopPrank();
     }
 

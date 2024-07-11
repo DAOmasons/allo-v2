@@ -382,6 +382,10 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
         Recipient storage recipient = _recipients[_recipientId];
 
+        if (recipient.recipientStatus != Status.Accepted && recipient.recipientStatus != Status.Pending) {
+            revert RECIPIENT_NOT_ACCEPTED();
+        }
+
         if (recipient.milestonesReviewStatus == Status.Accepted) {
             revert MILESTONES_ALREADY_SET();
         }
@@ -443,15 +447,13 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
             amountReturned += recipient.grantAmount * milestone.amountPercentage / 1e18;
         }
 
-        if (amountReturned == 0) {
-            revert ALLOCATION_NOT_ACTIVE();
-        }
-
         allocatedGrantAmount -= amountReturned;
 
         recipient.recipientStatus = Status.None;
         recipient.milestonesReviewStatus = Status.None;
         recipient.grantAmount = 0;
+        delete milestones[_recipientId];
+        delete upcomingMilestone[_recipientId];
 
         emit GrantClawback(_recipientId, _reason, amountReturned);
     }
