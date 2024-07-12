@@ -88,7 +88,14 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     /// ===============================
 
     /// @notice Emitted when the strategy is initialized
-    event GrantShipInitialized(uint256 poolId, uint256 operatorHatId, uint256 facilitatorHatId, address registryAnchor);
+    event GrantShipInitialized(
+        uint256 poolId, address gameManager, uint256 operatorHatId, uint256 facilitatorHatId, address registryAnchor
+    );
+
+    /// @notice Emitted when a recipient is registered
+    event RecipientRegistered(
+        address recipientId, address receivingAddress, uint256 grantAmount, Metadata metadata, uint256 grantIndex
+    );
 
     /// @notice Emitted for the registration of a recipient and the status is updated.
     event RecipientStatusChanged(address recipientId, Status status, Metadata reason);
@@ -106,7 +113,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     event MilestoneRejected(address recipientId, uint256 milestoneId, Metadata reason);
 
     /// @notice Emitted for the milestones set.
-    event MilestonesSet(address recipientId, uint256 milestonesLength);
+    event MilestonesSet(address recipientId, uint256 milestonesLength, Milestone[] milestones);
 
     ///@notice Emitted when a flag is issued to this GrantShip
     event FlagIssued(uint256 nonce, FlagType flagType, Metadata flagReason);
@@ -257,7 +264,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
         _setPoolActive(true);
 
-        emit GrantShipInitialized(_poolId, operatorHatId, facilitatorHatId, shipRegistryAnchor);
+        emit GrantShipInitialized(_poolId, address(_gameManager), operatorHatId, facilitatorHatId, shipRegistryAnchor);
     }
 
     /// ===============================
@@ -446,9 +453,9 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
     function completeGrant(address _recipientId, Metadata calldata _metadata) external {
         bool isRecipientCreator = (msg.sender == _recipientId) || _isProfileMember(_recipientId, msg.sender);
         bool isOperator = isShipOperator(msg.sender);
-        bool isGameFacilitator = isGameFacilitator(msg.sender);
+        bool isFacilitator = isGameFacilitator(msg.sender);
 
-        if (!isRecipientCreator && !isOperator && !isGameFacilitator) {
+        if (!isRecipientCreator && !isOperator && !isFacilitator) {
             revert UNAUTHORIZED();
         }
 
@@ -669,7 +676,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
             delete milestones[recipientId];
         }
 
-        uint256 currentGrantIndex = _recipients[recipientId].grantIndex;
+        uint256 currentGrantIndex = _recipients[recipientId].grantIndex + 1;
 
         // Create the recipient instance
         Recipient memory recipient = Recipient({
@@ -678,12 +685,12 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
             metadata: metadata,
             recipientStatus: Status.Pending,
             milestonesReviewStatus: Status.Pending,
-            grantIndex: currentGrantIndex + 1
+            grantIndex: currentGrantIndex
         });
 
         _recipients[recipientId] = recipient;
 
-        emit Registered(recipientId, _data, _sender);
+        emit RecipientRegistered(recipientId, receivingAddress, grantAmount, metadata, currentGrantIndex);
     }
 
     /// @notice Allocate amount to GrantShip recipients
@@ -854,7 +861,6 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
 
             milestones[_recipientId].push(milestone);
 
-            emit MilestoneCreated(_recipientId, i, milestone.amountPercentage, milestone.metadata);
             unchecked {
                 i++;
             }
@@ -864,7 +870,7 @@ contract GrantShipStrategy is BaseStrategy, ReentrancyGuard {
             revert INVALID_MILESTONE();
         }
 
-        emit MilestonesSet(_recipientId, milestonesLength);
+        emit MilestonesSet(_recipientId, milestonesLength, _milestones);
     }
 
     /// @notice This contract should be able to receive native token

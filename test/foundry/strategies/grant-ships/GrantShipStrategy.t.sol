@@ -29,9 +29,12 @@ import {EventSetup} from "../../shared/EventSetup.sol";
 contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
     // Events
     event RecipientStatusChanged(address recipientId, GrantShipStrategy.Status status, Metadata reason);
+    event RecipientRegistered(
+        address recipientId, address receivingAddress, uint256 grantAmount, Metadata metadata, uint256 grantIndex
+    );
     event MilestoneSubmitted(address recipientId, uint256 milestoneId, Metadata metadata);
     event MilestoneStatusChanged(address recipientId, uint256 milestoneId, IStrategy.Status status);
-    event MilestonesSet(address recipientId, uint256 milestonesLength);
+    event MilestonesSet(address recipientId, uint256 milestonesLength, GrantShipStrategy.Milestone[] milestones);
     event MilestonesReviewed(address recipientId, IStrategy.Status status, Metadata reason);
     event PoolFunded(uint256 poolId, uint256 amountAfterFee, uint256 feeAmount);
     event PoolWithdraw(uint256 amount);
@@ -1646,7 +1649,8 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
         vm.startPrank(address(allo()));
 
         vm.expectEmit(true, true, true, true);
-        emit Registered(recipientId, data, profile1_member1());
+
+        emit RecipientRegistered(recipientId, recipientAddress, grantAmount, metadata, 1);
 
         ship(1).registerRecipient(data, sender);
         vm.stopPrank();
@@ -1673,7 +1677,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
 
         vm.expectEmit(true, true, true, true);
 
-        emit MilestonesSet(recipientId, milestones.length);
+        emit MilestonesSet(recipientId, milestones.length, milestones);
 
         vm.startPrank(profile1_member1());
         ship(1).setMilestones(recipientId, milestones, reason);
@@ -1822,7 +1826,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
 
         vm.expectEmit(true, true, true, true);
 
-        emit MilestonesSet(recipientId, milestones.length);
+        emit MilestonesSet(recipientId, milestones.length, milestones);
         emit MilestonesReviewed(recipientId, IStrategy.Status.Accepted, reason);
 
         vm.startPrank(shipOperator(1).wearer);
@@ -1848,7 +1852,7 @@ contract GrantShipStrategyTest is Test, GameManagerSetup, EventSetup, Errors {
 
         vm.expectEmit(true, true, true, true);
 
-        emit MilestonesSet(recipientId, milestones.length);
+        emit MilestonesSet(recipientId, milestones.length, milestones);
 
         vm.startPrank(profile1_member1());
         ship(1).setMilestones(recipientId, milestones, reason);
