@@ -198,16 +198,7 @@ contract GameManagerStrategyTest is Test, GameManagerSetup, Errors, EventSetup {
         gameManager().reviewRecipient(
             recipientAddress,
             GameManagerStrategy.GameStatus.Accepted,
-            ShipInitData(
-                true,
-                true,
-                true,
-                "Ship Name",
-                Metadata(1, "Ship 1"),
-                team(0).wearer,
-                shipOperator(0).id,
-                facilitator().id
-            ),
+            ShipInitData("Ship Name", Metadata(1, "Ship 1"), team(0).wearer, shipOperator(0).id, facilitator().id),
             address(shipFactory()),
             reason
         );
@@ -223,16 +214,7 @@ contract GameManagerStrategyTest is Test, GameManagerSetup, Errors, EventSetup {
         gameManager().reviewRecipient(
             recipientAddress,
             GameManagerStrategy.GameStatus.Accepted,
-            ShipInitData(
-                true,
-                true,
-                true,
-                "Ship Name",
-                Metadata(1, "Ship 1"),
-                team(0).wearer,
-                shipOperator(0).id,
-                facilitator().id
-            ),
+            ShipInitData("Ship Name", Metadata(1, "Ship 1"), team(0).wearer, shipOperator(0).id, facilitator().id),
             address(shipFactory()),
             reason
         );
@@ -258,16 +240,7 @@ contract GameManagerStrategyTest is Test, GameManagerSetup, Errors, EventSetup {
         gameManager().reviewRecipient(
             applicantId,
             GameManagerStrategy.GameStatus.None,
-            ShipInitData(
-                true,
-                true,
-                true,
-                "Ship Name",
-                Metadata(1, "Ship 1"),
-                team(0).wearer,
-                shipOperator(0).id,
-                facilitator().id
-            ),
+            ShipInitData("Ship Name", Metadata(1, "Ship 1"), team(0).wearer, shipOperator(0).id, facilitator().id),
             address(shipFactory()),
             reason
         );
@@ -856,16 +829,7 @@ contract GameManagerStrategyTest is Test, GameManagerSetup, Errors, EventSetup {
         gameManager().reviewRecipient(
             recipientAddress,
             GameManagerStrategy.GameStatus.Accepted,
-            ShipInitData(
-                true,
-                true,
-                true,
-                "Ship Name",
-                Metadata(1, "Ship 1"),
-                profile1_owner(),
-                shipOperator(0).id,
-                facilitator().id
-            ),
+            ShipInitData("Ship Name", Metadata(1, "Ship 1"), profile1_owner(), shipOperator(0).id, facilitator().id),
             address(shipFactory()),
             reason
         );
@@ -873,16 +837,7 @@ contract GameManagerStrategyTest is Test, GameManagerSetup, Errors, EventSetup {
         gameManager().reviewRecipient(
             recipientAddress2,
             GameManagerStrategy.GameStatus.Accepted,
-            ShipInitData(
-                true,
-                true,
-                true,
-                "Ship Name 2",
-                Metadata(1, "Ship 2"),
-                profile2_owner(),
-                shipOperator(1).id,
-                facilitator().id
-            ),
+            ShipInitData("Ship Name 2", Metadata(1, "Ship 2"), profile2_owner(), shipOperator(1).id, facilitator().id),
             address(shipFactory()),
             reason
         );
@@ -890,16 +845,7 @@ contract GameManagerStrategyTest is Test, GameManagerSetup, Errors, EventSetup {
         gameManager().reviewRecipient(
             recipientAddress3,
             GameManagerStrategy.GameStatus.Accepted,
-            ShipInitData(
-                true,
-                true,
-                true,
-                "Ship Name 3",
-                Metadata(1, "Ship 3"),
-                pool_admin(),
-                shipOperator(2).id,
-                facilitator().id
-            ),
+            ShipInitData("Ship Name 3", Metadata(1, "Ship 3"), pool_admin(), shipOperator(2).id, facilitator().id),
             address(shipFactory()),
             reason
         );
@@ -991,16 +937,7 @@ contract GameManagerStrategyTest is Test, GameManagerSetup, Errors, EventSetup {
         address payable shipAddress2 = gameManager().reviewRecipient(
             profile2_anchor(),
             GameManagerStrategy.GameStatus.Accepted,
-            ShipInitData(
-                true,
-                true,
-                true,
-                "Ship Name 2",
-                Metadata(1, "Ship 2"),
-                team(1).wearer,
-                shipOperator(1).id,
-                facilitator().id
-            ),
+            ShipInitData("Ship Name 2", Metadata(1, "Ship 2"), team(1).wearer, shipOperator(1).id, facilitator().id),
             address(shipFactory()),
             reason
         );
@@ -1016,16 +953,7 @@ contract GameManagerStrategyTest is Test, GameManagerSetup, Errors, EventSetup {
         address payable shipAddress3 = gameManager().reviewRecipient(
             poolProfile_anchor(),
             GameManagerStrategy.GameStatus.Accepted,
-            ShipInitData(
-                true,
-                true,
-                true,
-                "Ship Name 3",
-                Metadata(1, "Ship 3"),
-                team(1).wearer,
-                shipOperator(2).id,
-                facilitator().id
-            ),
+            ShipInitData("Ship Name 3", Metadata(1, "Ship 3"), team(1).wearer, shipOperator(2).id, facilitator().id),
             address(shipFactory()),
             reason
         );
@@ -1087,16 +1015,7 @@ contract GameManagerStrategyTest is Test, GameManagerSetup, Errors, EventSetup {
         gameManager().reviewRecipient(
             applicantId,
             GameManagerStrategy.GameStatus.Rejected,
-            ShipInitData(
-                true,
-                true,
-                true,
-                "Ship Name",
-                Metadata(1, "Ship 1"),
-                team(0).wearer,
-                shipOperator(0).id,
-                facilitator().id
-            ),
+            ShipInitData("Ship Name", Metadata(1, "Ship 1"), team(0).wearer, shipOperator(0).id, facilitator().id),
             address(shipFactory()),
             reason
         );
@@ -1128,16 +1047,7 @@ contract GameManagerStrategyTest is Test, GameManagerSetup, Errors, EventSetup {
         address payable shipAddress = gameManager().reviewRecipient(
             applicantId,
             GameManagerStrategy.GameStatus.Accepted,
-            ShipInitData(
-                true,
-                true,
-                true,
-                "Ship Name",
-                Metadata(1, "Ship 1"),
-                profile1_owner(),
-                shipOperator(0).id,
-                facilitator().id
-            ),
+            ShipInitData("Ship Name", Metadata(1, "Ship 1"), profile1_owner(), shipOperator(0).id, facilitator().id),
             address(shipFactory()),
             reason
         );
